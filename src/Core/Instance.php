@@ -2,11 +2,6 @@
 
 namespace William\HyperfExtTelegram\Core;
 
-use William\HyperfExtTelegram\Bot;
-use William\HyperfExtTelegram\Core\Annotation\AnnotationRegistry;
-use William\HyperfExtTelegram\Helper\Logger;
-use App\Model\User;
-use App\Service\UserService;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\Context\Context;
 use Hyperf\Contract\TranslatorInterface;
@@ -16,6 +11,11 @@ use Hyperf\Redis\RedisFactory;
 use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\Objects\Update;
+use William\HyperfExtTelegram\Core\Annotation\AnnotationRegistry;
+use William\HyperfExtTelegram\Helper\Logger;
+use William\HyperfExtTelegram\Model\TelegramBot;
+use William\HyperfExtTelegram\Model\TelegramUser;
+use function Hyperf\Config\config;
 use function Hyperf\Support\make;
 
 class Instance
@@ -35,7 +35,6 @@ class Instance
     protected TranslatorInterface $translator;
     protected int $botID;
     protected $keyboards;
-    protected UserService $userService;
 
     public function __construct(string $token)
     {
@@ -45,7 +44,6 @@ class Instance
         $this->redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
         $this->clientFactory = ApplicationContext::getContainer()->get(ClientFactory::class);
         $this->translator = ApplicationContext::getContainer()->get(TranslatorInterface::class);
-        $this->userService = make(UserService::class);
         $this->init();
     }
 
@@ -78,7 +76,7 @@ class Instance
     public function webhook(bool $condition = true): void
     {
         if ($condition) {
-            $url = Instance . php\Hyperf\Support\env('BOT_WEBHOOK_BASE') . $this->botID;
+            $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE') . $this->botID;
             Logger::debug("添加webhook:" . $url);
             $this->telegram->setWebhook([
                 'url' => $url,
@@ -123,7 +121,7 @@ class Instance
     {
         $me = $this->telegram->getMe();
         Logger::info("bot getMe => " . json_encode($me));
-        Bot::where(['token' => $this->token])->update(['username' => $me->username, 'nickname' => $me->firstName]);
+        TelegramBot::where(['token' => $this->token])->update(['username' => $me->username, 'nickname' => $me->firstName]);
 //        $this->polling($condition);
         call_user_func([$this, $method], $condition);
     }
@@ -197,6 +195,10 @@ class Instance
     protected function handleCommand(string $command, Update $update): void
     {
         Logger::info('handle Command: ' . $command);
+        if ($command == '/start') {
+            Logger::info('更新用户信息');
+            $this->updateUserInfo($update);
+        }
         $handler = AnnotationRegistry::getCommandHandler($command);
         if ($handler) {
             /** @var CommandInterface $instance */
@@ -353,7 +355,7 @@ class Instance
 
         switch ($type) {
             case 'private':
-                return trim($chat->getFirstName() . ' Instance.php' . $chat->getLastName());
+                return trim($chat->getFirstName() . ' ' . $chat->getLastName());
 
             case 'group':
             case 'supergroup':
@@ -515,14 +517,62 @@ class Instance
     private function initUser($chatId): void
     {
         $botId = $this->botID;
-        $user = $this->userService->getUserByChatId($chatId, $botId);
+        $user = TelegramUser::where('user_id', $chatId)->where('bot_id', $botId)->first();
         if ($user) {
             Context::set(self::USER_KEY, $user);
         }
     }
 
-    public function getCurrentUser(): ?User
+    public function getCurrentUser(): ?TelegramUser
     {
         return Context::get(self::USER_KEY);
+    }
+
+    private function updateUserInfo(Update $update): void
+    {
+        $chatId = $this->getChatId($update); // 消息来自群里面的机器人时，这个chatId变成群ID了，
+        $botToken = $this->getAccessToken();
+        $arr = explode(":", $botToken);
+        $botId = $arr[0];
+        $userInfo = [
+            'bot_id' => $botId,
+            'user_id' => $chatId,
+            'username' => $this->getUsername($update),
+            'nickname' => $this->getNickname($update),
+        ];
+        $getAvatarHandle = config('telegram.get_avatar');
+        $getAvatarHandle ? $getAvatarHandle($update) : $userInfo['avatar'] = $this->getAvatar($update);
+        $user = TelegramUser::updateOrCreate([
+            'bot_id' => $botId,
+            'user_id' => $chatId,
+        ], $userInfo);
+        Logger::info('同步用户信息成功：' . $user->id . ' => ' . json_encode($userInfo));
+    }
+
+    private function getAvatar(Update $update): string
+    {
+        try {
+            Logger::debug("开始获取头像");
+            $userId = $update->getMessage()->from->id;
+
+            $photos = $this->telegram->getUserProfilePhotos([
+                'user_id' => $userId,
+                'limit' => 1,
+            ]);
+
+            if ($photos->total_count > 0) {
+                $fileId = $photos->photos[0][0]['file_id'];
+                $file = $this->telegram->getFile(['file_id' => $fileId]);
+                $filePath = $file->file_path;
+                $avatarUrl = "https://api.telegram.org/file/bot" . $this->telegram->getAccessToken() . "/" . $filePath;
+                Logger::debug("用户头像地址: " . $avatarUrl);
+                return $avatarUrl;
+            } else {
+                Logger::debug("用户没有头像");
+            }
+        } catch (\Exception $e) {
+            Logger::error("获取头像异常：{$e->getMessage()}");
+        }
+        return "";
     }
 }

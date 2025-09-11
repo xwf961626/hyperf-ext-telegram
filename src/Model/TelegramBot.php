@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace William\HyperfExtTelegram;
+namespace William\HyperfExtTelegram\Model;
 
 use Hyperf\DbConnection\Model\Model;
 
@@ -11,6 +11,7 @@ use Hyperf\DbConnection\Model\Model;
  * @property string $token
  * @property string $username
  * @property string $nickname
+ * @property string $language
  * @property int $expired_time
  * @property string $expired_at
  * @property array $admins
@@ -18,12 +19,12 @@ use Hyperf\DbConnection\Model\Model;
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  */
-class Bot extends Model
+class TelegramBot extends Model
 {
     /**
      * The table associated with the model.
      */
-    protected ?string $table = 'bots';
+    protected ?string $table = 'telegram_bots';
 
     /**
      * The attributes that are mass assignable.
@@ -33,6 +34,7 @@ class Bot extends Model
         'token',
         'username',
         'status',
+        'language',
         'expired_time',
         'expired_at',
     ];

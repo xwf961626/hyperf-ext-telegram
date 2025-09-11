@@ -27,12 +27,12 @@ class ConfigProvider
                 [
                     'id' => 'tron',
                     'description' => 'tron',
-                    'source' => __DIR__ . '/../publish/tron.php',
-                    'destination' => BASE_PATH . '/config/autoload/tron.php',
+                    'source' => __DIR__ . '/../publish/telegram.php',
+                    'destination' => BASE_PATH . '/config/autoload/telegram.php',
                 ],
                 [
                     'id' => 'migrations',
-                    'description' => 'tron migrations',
+                    'description' => 'telegram bot migrations',
                     'source' => __DIR__ . '/../migrations/',
                     'destination' => BASE_PATH . '/migrations/',
                 ],

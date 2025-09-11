@@ -11,6 +11,6 @@ class StartBot implements EventInterface
 {
     public function handle(BotManager $botManager, mixed $event): void
     {
-        $botManager->startBot($event->token);
+        $botManager->startPulling($event->token);
     }
 }

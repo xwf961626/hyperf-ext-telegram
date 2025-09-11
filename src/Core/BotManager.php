@@ -3,10 +3,6 @@ declare(strict_types=1);
 
 namespace William\HyperfExtTelegram\Core;
 
-use William\HyperfExtTelegram\Bot;
-use William\HyperfExtTelegram\Config;
-use William\HyperfExtTelegram\Core\Annotation\AnnotationRegistry;
-use William\HyperfExtTelegram\Helper\Logger;
 use Hyperf\Contract\ContainerInterface;
 use Hyperf\Contract\TranslatorInterface;
 use Hyperf\Coroutine\Coroutine;
@@ -14,6 +10,10 @@ use Hyperf\Guzzle\ClientFactory;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Redis\Redis;
 use Hyperf\Redis\RedisFactory;
+use William\HyperfExtTelegram\Config;
+use William\HyperfExtTelegram\Core\Annotation\AnnotationRegistry;
+use William\HyperfExtTelegram\Helper\Logger;
+use William\HyperfExtTelegram\Model\TelegramBot;
 use function Hyperf\Support\make;
 
 class BotManager
@@ -68,37 +68,69 @@ class BotManager
         return isset($this->bots[$token]);
     }
 
+    public function start(): void
+    {
+        $mode = \Hyperf\Support\env('TELEGRAM_MODE');
+        $env = \Hyperf\Support\env('APP_ENV');
+        Logger::debug("当前环境：$env 模式 $mode");
+        if (\Hyperf\Support\env('APP_ENV') != 'production') {
+            $token = \Hyperf\Config\config('telegram.dev_token');
+            Logger::debug("启动测试机器人 $token");
+            $bot = TelegramBot::updateOrCreate(['token' => $token]);
+            $this->startPulling($bot);
+        } else {
+            if ($mode == 'webhook') {
+                $this->startWebhook();
+            } else {
+                $bots = TelegramBot::all();
+                foreach ($bots as $bot) {
+                    $this->startPulling($bot);
+                }
+            }
+        }
+    }
+
+    public function addBot($token): TelegramBot
+    {
+        $mode = \Hyperf\Support\env('TELEGRAM_MODE');
+        $env = \Hyperf\Support\env('APP_ENV');
+        Logger::debug("当前环境：$env 模式 $mode");
+        $bot = TelegramBot::updateOrCreate(['token' => $token]);
+        $instance = $this->newInstance($bot);
+        if ($mode == 'webhook') {
+            $instance->webhook();
+        } else {
+            $this->startPulling($bot);
+        }
+        return $bot;
+    }
+
     public function startWebhook(): void
     {
-        $bots = Bot::all();
+        $bots = TelegramBot::all();
         foreach ($bots as $bot) {
             $instance = $this->newInstance($bot);
             $instance->start(isset($this->bots[$bot->token]), 'webhook');
         }
     }
 
-    public function startBot(string $token, bool $async = true): void
+    public function startPulling(TelegramBot $bot, bool $async = true): void
     {
-        Logger::info("Worker#{$this->workerId} 启动机器人 $token ...");
-        $bot = Bot::where('token', $token)->first();
-        if (!$bot) {
-            $this->logger->error("Bot $token 不存在.");
-            return;
-        }
-        if (isset($this->bots[$token])) {
-            $this->logger->info("Bot $token already running.");
+        Logger::info("Worker#{$this->workerId} 启动机器人 {$bot->token} ...");
+        if (isset($this->bots[$bot->token])) {
+            $this->logger->info("Bot {$bot->token} already running.");
             return;
         }
         if ($async) {
-            Coroutine::create(function () use ($token, $bot) {
-                $this->polling($token, $bot);
+            Coroutine::create(function () use ($bot) {
+                $this->polling($bot->token, $bot);
             });
         } else {
-            $this->polling($token, $bot);
+            $this->polling($bot->token, $bot);
         }
     }
 
-    public function polling(string $token, Bot $bot): void
+    public function polling(string $token, TelegramBot $bot): void
     {
         $this->logger->info("Worker#{$this->workerId} Starting bot: $token");
         $instance = $this->newInstance($bot);
@@ -182,7 +214,7 @@ class BotManager
         $bots = $this->redis->sMembers('tg_bot:worker:' . $this->workerId);
         if (!empty($bots)) {
             foreach ($bots as $token) {
-                if ($model = Bot::where('token', $token)->first()) {
+                if ($model = TelegramBot::where('token', $token)->first()) {
                     $model->status = 'stopped';
                     $model->save();
                 }
@@ -298,7 +330,7 @@ class BotManager
         }
     }
 
-    private function newInstance(Bot $bot): Instance
+    private function newInstance(TelegramBot $bot): Instance
     {
         $instance = new Instance($bot->token);
         $instance->setMessages($this->messages);
