@@ -557,7 +557,7 @@ class Instance
             'nickname' => $this->getNickname($update),
         ];
         $getAvatarHandle = config('telegram.get_avatar');
-        $getAvatarHandle ? $getAvatarHandle($update) : $userInfo['avatar'] = $this->getAvatar($update);
+        $userInfo['avatar'] = $getAvatarHandle ? $getAvatarHandle($update) : $this->getAvatar($update);
         $user = TelegramUser::updateOrCreate([
             'bot_id' => $botId,
             'user_id' => $chatId,
