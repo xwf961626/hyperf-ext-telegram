@@ -14,10 +14,9 @@ use function Hyperf\Config\config;
 use Hyperf\Swagger\Annotation as SA;
 
 #[SA\HyperfServer(name: 'http')]
-class AdminController
+class AdminController extends BaseController
 {
-    #[Inject]
-    protected ResponseInterface $response;
+
     protected \Hyperf\Redis\Redis $redis;
 
     public function __construct(protected BotManager $botManager, RedisFactory $redisFactory)
@@ -184,19 +183,4 @@ class AdminController
         return $this->success(true);
     }
 
-    protected function error($message, $code = 500)
-    {
-        return $this->response
-            ->withStatus($code) // 设置状态码
-            ->withHeader('Content-Type', 'application/json')
-            ->withBody(new \Hyperf\HttpMessage\Stream\SwooleStream(json_encode(['code' => $code, 'msg' => $message])));
-    }
-
-    protected function success($data)
-    {
-        return $this->response
-            ->withStatus(200) // 设置状态码
-            ->withHeader('Content-Type', 'application/json')
-            ->withBody(new \Hyperf\HttpMessage\Stream\SwooleStream(json_encode(['code' => 200, 'data' => $data])));
-    }
 }
