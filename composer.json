@@ -32,6 +32,7 @@
     "hyperf/devtool": "~3.1.0",
     "hyperf/testing": "~3.1.0",
     "mockery/mockery": "^1.0",
+    "hyperf/swagger": "^3.1",
     "swoole/ide-helper": "^5.0"
   },
   "autoload": {

@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Log;
 use William\HyperfExtTelegram\Core\BotManager;
 use William\HyperfExtTelegram\Model\TelegramBot;
 use function Hyperf\Config\config;
+use Hyperf\Swagger\Annotation as SA;
 
+#[SA\HyperfServer(name: 'http')]
 class AdminController
 {
     #[Inject]
@@ -26,11 +28,49 @@ class AdminController
     public static function addRoutes(): void
     {
         Router::post('/admin/telegram/bots', [self::class, 'addTelegramBot']);
-        Router::delete('/admin/telegram/bots', [self::class, 'deleteTelegramBot']);
-        Router::put('/admin/telegram/bots', [self::class, 'editTelegramBot']);
+        Router::delete('/admin/telegram/bots/{id}', [self::class, 'deleteTelegramBot']);
+        Router::put('/admin/telegram/bots/{id}', [self::class, 'editTelegramBot']);
         Router::get('/admin/telegram/bots', [self::class, 'getTelegramBots']);
     }
 
+    #[SA\Post(path: '/admin/telegram/bots', summary: '添加机器人接口', tags: ['机器人管理'])]
+    #[SA\RequestBody(
+        description: '请求参数',
+        content: [
+            new SA\MediaType(
+                mediaType: 'application/json',
+                schema: new SA\Schema(
+                    required: ['token'],
+                    properties: [
+                        new SA\Property(property: 'token', description: 'token', type: 'string'),
+                        new SA\Property(property: 'username', description: '用户名', type: 'string'),
+                        new SA\Property(property: 'nickname', description: '昵称', type: 'string'),
+                        new SA\Property(property: 'language', description: '默认语言', type: 'string'),
+                    ]
+                ),
+            ),
+        ],
+    )]
+    #[SA\Response(
+        response: 200,
+        description: '返回值的描述',
+        content: [
+            new SA\MediaType(
+                mediaType: 'application/json',
+                schema: new SA\Schema(
+                    properties: [
+                        new SA\Property(property: 'code', description: 'code', type: 'integer'),
+                        new SA\Property(
+                            property: 'data',
+                            ref: "#/components/schemas/Bot",
+                            description: 'data',
+                            type: 'object'
+                        ),
+                    ]
+                ),
+            ),
+        ],
+    )]
     public function addTelegramBot(Request $request)
     {
         if (!$token = $request->post('token')) {
@@ -45,13 +85,72 @@ class AdminController
         }
     }
 
+    #[SA\Get(path: '/admin/telegram/bots', summary: '分页查询机器人', tags: ['机器人管理'])]
+    #[SA\QueryParameter(name: 'limit', description: '每页数量，默认15', required: false, schema: new SA\Schema(type: 'integer'))]
+    #[SA\QueryParameter(name: 'page', description: '页码，默认1', required: false, schema: new SA\Schema(type: 'integer'))]
+    #[SA\QueryParameter(name: 'keywords', description: '关键词查询', required: false, schema: new SA\Schema(type: 'string'))]
+    #[SA\Response(
+        response: 200,
+        description: '返回值的描述',
+        content: [
+            new SA\MediaType(
+                mediaType: 'application/json',
+                schema: new SA\Schema(
+                    properties: [
+                        new SA\Property(property: 'code', description: 'code', type: 'integer'),
+                        new SA\Property(
+                            property: 'data',
+                            description: 'data',
+                            type: 'array',
+                            items: new SA\Items(ref: "#/components/schemas/Bot")
+                        ),
+                    ]
+                ),
+            ),
+        ],
+    )]
     public function getTelegramBots(Request $request)
     {
-        $results = TelegramBot::query()->orderBy('id', 'desc')
+        $query = TelegramBot::query();
+        if ($keywords = $request->query('keywords')) {
+            $query = $query->where('username', 'like', '%' . $keywords . '%')
+                ->orWhere('nickname', 'like', '%' . $keywords . '%');
+        }
+        $results = $query->orderBy('id', 'desc')
             ->paginate($request->query('limit', 15));
         return $this->success($results);
     }
 
+    #[SA\Put(path: '/admin/telegram/bots/{id}', summary: '修改机器人接口', tags: ['机器人管理'])]
+    #[SA\RequestBody(
+        description: '请求参数',
+        content: [
+            new SA\MediaType(
+                mediaType: 'application/json',
+                schema: new SA\Schema(ref: "#/components/schemas/Bot"),
+            ),
+        ],
+    )]
+    #[SA\Response(
+        response: 200,
+        description: '返回值的描述',
+        content: [
+            new SA\MediaType(
+                mediaType: 'application/json',
+                schema: new SA\Schema(
+                    properties: [
+                        new SA\Property(property: 'code', description: 'code', type: 'integer'),
+                        new SA\Property(
+                            property: 'data',
+                            ref: "#/components/schemas/Bot",
+                            description: 'data',
+                            type: 'object'
+                        ),
+                    ]
+                ),
+            ),
+        ],
+    )]
     public function editTelegramBot(int $id, Request $request)
     {
         $bot = TelegramBot::find($id);
@@ -89,8 +188,8 @@ class AdminController
     {
         return $this->response
             ->withStatus($code) // 设置状态码
-            ->withHeader('Content-Type', 'text/plain')
-            ->withBody(new \Hyperf\HttpMessage\Stream\SwooleStream($message));
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody(new \Hyperf\HttpMessage\Stream\SwooleStream(json_encode(['code' => $code, 'msg' => $message])));
     }
 
     protected function success($data)
@@ -98,6 +197,6 @@ class AdminController
         return $this->response
             ->withStatus(200) // 设置状态码
             ->withHeader('Content-Type', 'application/json')
-            ->withBody(new \Hyperf\HttpMessage\Stream\SwooleStream(json_encode($data)));
+            ->withBody(new \Hyperf\HttpMessage\Stream\SwooleStream(json_encode(['code' => 200, 'data' => $data])));
     }
 }
