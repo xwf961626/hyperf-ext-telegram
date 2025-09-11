@@ -1,0 +1,42 @@
+version: '3'
+services:
+  app:
+    image: docker.te-k8s.com/wl/hyperf-energy-bot:latest
+    container_name: ext-telegram
+    volumes:
+      - ./:/data/project
+    environment:
+      - APP_ENV=dev
+      - SCAN_CACHEABLE=false
+    working_dir: /data/project
+    stdin_open: true
+    tty: true
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    container_name: ext_tg_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: flush_energy_matrix
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ext_tg_phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: root
+    depends_on:
+      - mysql
+volumes:
+  mysql_data:

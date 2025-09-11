@@ -1,0 +1,10 @@
+/vendor/
+*.cache
+*.log
+*.lock
+/config/
+.idea
+/runtime/
+.env
+/bin/
+/app/
