@@ -332,7 +332,7 @@ class BotManager
 
     private function newInstance(TelegramBot $bot): Instance
     {
-        $instance = new Instance($bot->token);
+        $instance = new Instance($bot);
         $instance->setMessages($this->messages);
         $instance->setMenus($this->menus, $this->menuMap);
         $instance->setKeyboards($this->keyboards);

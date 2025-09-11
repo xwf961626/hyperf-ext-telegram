@@ -2,9 +2,9 @@
 
 namespace William\HyperfExtTelegram\Trait;
 
+use William\HyperfExtTelegram\Core\LangContext;
 use William\HyperfExtTelegram\Core\MessageDecorator;
-use William\HyperfExtTelegram\Reply\ErrorMessage;
-use William\HyperfExtTelegram\Helper\CacheHelper;
+use William\HyperfExtTelegram\Core\ErrorMessage;
 use William\HyperfExtTelegram\Helper\Logger;
 use function Hyperf\Translation\trans;
 
@@ -32,7 +32,7 @@ trait ReplyTrait
 
     protected function alert(string $type, array $params = [], $confirm = false): void
     {
-        $lang = CacheHelper::getUserLang($this->telegramUpdate->getChat()->id);
+        $lang = LangContext::get();
         Logger::debug('show alert => locale:' . $lang);
         $this->telegramInstance->answer($this->telegramUpdate, trans('message.'.$type, $params, $lang), $confirm);
     }

@@ -2,7 +2,8 @@
 
 namespace William\HyperfExtTelegram\Trait;
 
-use App\Model\User;
+
+use William\HyperfExtTelegram\Model\TelegramUser;
 
 trait UserTrait
 {
@@ -21,7 +22,7 @@ trait UserTrait
         return (float)$this->telegramInstance->getCurrentUser()->balance;
     }
 
-    protected function getUser(): User
+    protected function getUser(): TelegramUser
     {
         return $this->telegramInstance->getCurrentUser();
     }

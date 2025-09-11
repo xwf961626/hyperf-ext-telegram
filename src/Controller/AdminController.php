@@ -6,6 +6,7 @@ use Hyperf\Di\Annotation\Inject;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\HttpServer\Request;
 use Hyperf\HttpServer\Router\Router;
+use Hyperf\Redis\RedisFactory;
 use Illuminate\Support\Facades\Log;
 use William\HyperfExtTelegram\Core\BotManager;
 use William\HyperfExtTelegram\Model\TelegramBot;
@@ -15,9 +16,11 @@ class AdminController
 {
     #[Inject]
     protected ResponseInterface $response;
+    protected \Hyperf\Redis\Redis $redis;
 
-    public function __construct(protected BotManager $botManager)
+    public function __construct(protected BotManager $botManager, RedisFactory $redisFactory)
     {
+        $this->redis = $redisFactory->get('default');
     }
 
     public static function addRoutes(): void
@@ -57,6 +60,9 @@ class AdminController
         }
         try {
             $bot->update($request->post());
+            if ($this->redis->exists('bot:' . $bot->token)) {
+                $this->redis->del('bot:' . $bot->token);
+            }
         } catch (\Exception $e) {
             Log::error($e->getMessage());
             return $this->error($e->getMessage());

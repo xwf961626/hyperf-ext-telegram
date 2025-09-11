@@ -15,6 +15,7 @@ abstract class AbstractMessage implements ReplyMessageInterface
 {
     protected string $cacheKey = 'default';
     protected Redis $redis;
+    protected int $messageId = 0;
 
     public function __construct(protected Api $telegram, protected int $chatId)
     {

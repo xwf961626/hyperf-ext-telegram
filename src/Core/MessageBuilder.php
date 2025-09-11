@@ -3,7 +3,7 @@
 namespace William\HyperfExtTelegram\Core;
 
 
-use William\HyperfExtTelegram\Helper\CacheHelper;
+use Hyperf\Cache\Cache;
 use William\HyperfExtTelegram\Helper\Logger;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\Redis\RedisFactory;
@@ -13,6 +13,7 @@ use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\FileUpload\InputFile;
 use Telegram\Bot\Objects\Message;
+use function Hyperf\Support\make;
 use function Hyperf\Translation\trans;
 
 class MessageBuilder
@@ -31,17 +32,19 @@ class MessageBuilder
      * @var string|null
      */
     protected ?string $shouldSaveFileId = null;
+    protected Cache $cache;
 
     public function __construct()
     {
         // 默认初始化 parse_mode 为 HTML
         $this->message['parse_mode'] = 'HTML';
+        $this->cache = make(Cache::class);
     }
 
     public static function newMessage($chatId)
     {
         $instance = new self();
-        $instance->locale = CacheHelper::getUserLang($chatId);
+        $instance->locale = LangContext::get();
         $instance->chatId($chatId);
         return $instance;
     }
@@ -81,7 +84,7 @@ class MessageBuilder
      */
     public function transMessage(string $key, array $params = []): self
     {
-        $locale = CacheHelper::getUserLang($this->message['chat_id']);
+        $locale = LangContext::get();
         $text = trans('message.' . $key, $params, $locale);
         $this->message[$this->textField] = $text;
         return $this;
@@ -89,7 +92,7 @@ class MessageBuilder
 
     public function transNotification(string $key, array $params = []): self
     {
-        $locale = CacheHelper::getUserLang($this->message['chat_id']);
+        $locale = LangContext::get();
         $this->message['text'] = trans('notifications.' . $key, $params, $locale);
         return $this;
     }
@@ -220,9 +223,9 @@ class MessageBuilder
         return $this;
     }
 
-    public function setEdit(?int $messageId=null): self
+    public function setEdit(?int $messageId = null): self
     {
-        if($messageId) {
+        if ($messageId) {
             $this->messageId = $messageId;
             $this->isEdit = true;
         }

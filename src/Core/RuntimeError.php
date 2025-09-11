@@ -2,6 +2,8 @@
 
 namespace William\HyperfExtTelegram\Core;
 
+use Throwable;
+
 class RuntimeError extends \Exception
 {
     protected array $extra = [];

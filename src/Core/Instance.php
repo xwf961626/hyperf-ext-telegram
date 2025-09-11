@@ -35,11 +35,13 @@ class Instance
     protected TranslatorInterface $translator;
     protected int $botID;
     protected $keyboards;
+    protected TelegramBot $bot;
 
-    public function __construct(string $token)
+    public function __construct(TelegramBot $bot)
     {
-        $this->token = $token;
-        $arr = explode(':', $token);
+        $this->bot = $bot;
+        $this->token = $bot->token;
+        $arr = explode(':', $bot->token);
         $this->botID = (int)$arr[0];
         $this->redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
         $this->clientFactory = ApplicationContext::getContainer()->get(ClientFactory::class);
@@ -126,10 +128,24 @@ class Instance
         call_user_func([$this, $method], $condition);
     }
 
+    public function getBotCache(): array
+    {
+        $key = 'bot:' . $this->token;
+        if (!$this->redis->exists($key)) {
+            $botCache = TelegramBot::where('token', $this->token)->first();
+            $this->redis->set('bot:' . $this->botID, json_encode($botCache));
+            return $botCache->toArray();
+        }
+        return json_decode($this->redis->get($key), true);
+    }
+
     private function getUserLanguage($chatId)
     {
-        $locale = $this->redis->get('trc20:locale:' . $this->botID . ':' . $chatId);
-        if (!$locale) $locale = 'zh_CN';
+        $locale = $this->redis->get('locale:' . $this->botID . ':' . $chatId);
+        if (!$locale) {
+            $botCache = $this->getBotCache();
+            $locale = $botCache['language'] ?: 'zh_CN';
+        }
         return $locale;
     }
 
