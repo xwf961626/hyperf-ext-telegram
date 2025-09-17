@@ -147,6 +147,7 @@ class BotManager
         if (isset($this->bots[$bot->token])) {
             $instance = $this->bots[$bot->token];
             $instance->stop();
+            unset($this->bots[$bot->token]);
         } else {
             Logger::debug("关闭机器人失败：{$bot->username} 未运行");
         }
@@ -356,6 +357,6 @@ class BotManager
     public function startBot(TelegramBot $bot)
     {
         Logger::info('正在启动机器人' . $bot->username);
-        $this->startPulling($bot);
+        $this->addBot($bot->token, $bot->language);
     }
 }
