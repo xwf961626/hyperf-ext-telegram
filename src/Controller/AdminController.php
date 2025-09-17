@@ -8,9 +8,11 @@ use Hyperf\HttpServer\Request;
 use Hyperf\HttpServer\Router\Router;
 use Hyperf\Redis\RedisFactory;
 use Illuminate\Support\Facades\Log;
+use Swoole\Table;
 use William\HyperfExtTelegram\Core\BotManager;
 use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
+use William\HyperfExtTelegram\Process\TelegramProcess;
 use function Hyperf\Config\config;
 use Hyperf\Swagger\Annotation as SA;
 
@@ -71,13 +73,15 @@ class AdminController extends BaseController
             ),
         ],
     )]
-    public function addTelegramBot(Request $request)
+    public function addTelegramBot(Request $request, Table $table)
     {
         if (!$token = $request->post('token')) {
             return $this->error(config('telegram.validate_messages')['telegram token is required']);
         }
+        $language = $request->post('language', 'zh_CN');
         try {
-            $bot = $this->botManager->addBot($token);
+            $bot = TelegramBot::updateOrCreate(['token' => $token], ['language' => $language, 'status' => 'stopped']);
+            $table->set('robot_command', ['command' => 'add', 'data' => ['botId' => $bot->id]]);
             return $this->success($bot);
         } catch (\Exception $e) {
             Log::error($e->getMessage());
@@ -151,7 +155,7 @@ class AdminController extends BaseController
             ),
         ],
     )]
-    public function editTelegramBot(int $id, Request $request)
+    public function editTelegramBot(int $id, Request $request, Table $table)
     {
         $bot = TelegramBot::find($id);
         if (!$bot) {
@@ -164,13 +168,13 @@ class AdminController extends BaseController
                 $this->redis->del('bot:' . $bot->token);
             }
             $bot->refresh();
-            if($oldStatus==='running' && $bot->status === 'stopped') {
+            if ($oldStatus === 'running' && $bot->status === 'stopped') {
                 Logger::info("管理员关闭机器人");
-                $this->botManager->stopBot($bot);
+                $table->set('robot_command', ['command' => 'stop', 'data' => ['botId' => $bot->id]]);
             }
-            if($oldStatus ==='stopped' && $bot->status ==='running') {
+            if ($oldStatus === 'stopped' && $bot->status === 'running') {
                 Logger::info("管理员开启机器人");
-                $this->botManager->startBot($bot);
+                $table->set('robot_command', ['command' => 'start', 'data' => ['botId' => $bot->id]]);
             }
         } catch (\Exception $e) {
             Log::error($e->getMessage());
@@ -179,7 +183,7 @@ class AdminController extends BaseController
         return $this->success($bot);
     }
 
-    public function deleteTelegramBot(int $id, Request $request)
+    public function deleteTelegramBot(int $id, Request $request, Table $table)
     {
         $bot = TelegramBot::find($id);
         if (!$bot) {
@@ -187,7 +191,7 @@ class AdminController extends BaseController
         }
         try {
             $bot->delete();
-            $this->botManager->stopBot($bot);
+            $table->set('robot_command', ['command' => 'stop', 'data' => ['botId' => $bot->id]]);
         } catch (\Exception $e) {
             Log::error($e->getMessage());
             return $this->error($e->getMessage());

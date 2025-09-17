@@ -70,7 +70,6 @@ class BotManager
 
     public function start(): void
     {
-        echo 111;
         $mode = \Hyperf\Support\env('TELEGRAM_MODE');
         $env = \Hyperf\Support\env('APP_ENV');
         Logger::debug("当前环境：$env 模式 $mode");
@@ -92,12 +91,12 @@ class BotManager
         }
     }
 
-    public function addBot($token): TelegramBot
+    public function addBot($token, $language = 'zh_CN'): TelegramBot
     {
         $mode = \Hyperf\Support\env('TELEGRAM_MODE');
         $env = \Hyperf\Support\env('APP_ENV');
         Logger::debug("当前环境：$env 模式 $mode");
-        $bot = TelegramBot::updateOrCreate(['token' => $token]);
+        $bot = TelegramBot::updateOrCreate(['token' => $token], ['language' => $language]);
         $instance = $this->newInstance($bot);
         if ($mode == 'webhook') {
             $instance->sync();
@@ -357,6 +356,6 @@ class BotManager
     public function startBot(TelegramBot $bot)
     {
         Logger::info('正在启动机器人' . $bot->username);
-        $this->addBot($bot);
+        $this->addBot($bot->token, $bot->language);
     }
 }
