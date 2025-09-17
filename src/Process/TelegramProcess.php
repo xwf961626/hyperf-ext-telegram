@@ -4,9 +4,9 @@ declare(strict_types=1);
 namespace William\HyperfExtTelegram\Process;
 
 use Hyperf\Process\AbstractProcess;
-use Hyperf\Process\Annotation\Process;
+use Hyperf\Redis\Redis;
+use Hyperf\Redis\RedisFactory;
 use Psr\Container\ContainerInterface;
-use Swoole\Table;
 use William\HyperfExtTelegram\Core\BotManager;
 use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
@@ -16,16 +16,16 @@ use function Hyperf\Support\env;
 class TelegramProcess extends AbstractProcess
 {
     protected BotManager $botManager;
-
-    public function __construct(ContainerInterface $container)
+    protected Redis $redis;
+    public function __construct(ContainerInterface $container, RedisFactory $redisFactory)
     {
         parent::__construct($container);
         $this->botManager = $container->get(BotManager::class);
+        $this->redis = $redisFactory->get('default');
     }
 
     public function handle(): void
     {
-        $table = $this->container->get(Table::class);
         try {
             Logger::debug('当前环境：' . env('APP_ENV'));
             $this->botManager->start();
@@ -35,28 +35,28 @@ class TelegramProcess extends AbstractProcess
 //            $this->handle();
         }
         while (true) {
-            // 检查控制器发来的命令
-            $cmd = $table->get('robot_command');
-            $c = $cmd['command'] ?? null;
-            $botId = $cmd['botId'] ?? null;
-            if($botId && $c) {
-                $table->set('robot_command', ['command' => '', 'botId' => '']);
-                $bot = TelegramBot::find($botId);
-                if($bot) {
-                    if ($cmd === 'stop') {
-                        $this->botManager->stopBot($bot);
+            $cmd = $this->redis->get('robot_command');
+            if ($cmd) {
+                Logger::info("收到机器人命令: $cmd");
+                $cmd = json_decode($cmd, true);
+                if ($cmd['botId'] && $cmd['command']) {
+                    $bot = TelegramBot::find($cmd['botId']);
+                    if($bot) {
+                        if ($cmd['command'] === 'stop') {
+                            $this->botManager->stopBot($bot);
+                        }
+                        if($cmd['command'] === 'start') {
+                            $this->botManager->startBot($bot);
+                        }
+                        if($cmd['command'] === 'add') {
+                            $this->botManager->startBot($bot);
+                        }
                     }
-                    if($cmd === 'start') {
-                        $this->botManager->startBot($bot);
-                    }
-                    if($cmd === 'add') {
-                        $this->botManager->startBot($bot);
-                    }
+                    $this->redis->del('robot_command'); // 处理完成后删除
                 }
             }
-
-
-            sleep(1); // 避免空循环占用 CPU
+            sleep(1);
         }
+
     }
 }

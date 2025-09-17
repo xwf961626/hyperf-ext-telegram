@@ -98,6 +98,7 @@ class Instance
         $offset = 0;
         $this->telegram->deleteWebhook();
         $this->running = true;
+        Logger::debug("开始 pulling...");
         while ($this->running) {
             try {
                 $updates = $this->telegram->getUpdates([
@@ -125,6 +126,7 @@ class Instance
                 Logger::info("未知异常:" . $e->getMessage() . $e->getTraceAsString());
             }
         }
+        Logger::debug("机器人结束Pulling");
     }
 
     public function sync()
@@ -605,7 +607,7 @@ class Instance
         return "";
     }
 
-    public function isRunning()
+    public function isRunning(): bool
     {
         return $this->running;
     }
@@ -614,6 +616,7 @@ class Instance
     {
         Logger::debug("正在关闭机器人...");
         if ($this->isRunning()) {
+            Logger::debug("关闭成功");
             $this->running = false;
             if ($this->mode === 'webhook') {
                 Logger::debug("删除webhook");
