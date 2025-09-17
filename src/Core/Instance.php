@@ -2,6 +2,7 @@
 
 namespace William\HyperfExtTelegram\Core;
 
+use Hyperf\Cache\Cache;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\Context\Context;
 use Hyperf\Contract\TranslatorInterface;
@@ -80,11 +81,14 @@ class Instance
     public function webhook(bool $condition = true): void
     {
         if ($condition) {
-            $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE') . $this->bot->id;
+            $sign = md5($this->bot->id . $this->bot->token . time() . random_bytes(10));
+            $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE');
+            $url = "{$url}{$this->bot->id}/{$sign}";
             Logger::debug("添加webhook:" . $url);
             $this->telegram->setWebhook([
                 'url' => $url,
             ]);
+            ApplicationContext::getContainer()->get(Cache::class)->set("webhook_token:".$this->bot->id, $sign);
             $this->running = true;
         }
     }
