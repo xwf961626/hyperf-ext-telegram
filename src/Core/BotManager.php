@@ -98,6 +98,7 @@ class BotManager
         $bot = TelegramBot::updateOrCreate(['token' => $token]);
         $instance = $this->newInstance($bot);
         if ($mode == 'webhook') {
+            $instance->sync();
             $instance->webhook();
         } else {
             $this->startPulling($bot);

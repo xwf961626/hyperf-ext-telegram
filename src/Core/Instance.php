@@ -78,7 +78,7 @@ class Instance
     public function webhook(bool $condition = true): void
     {
         if ($condition) {
-            $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE') . $this->botID;
+            $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE') .$this->bot->id;
             Logger::debug("添加webhook:" . $url);
             $this->telegram->setWebhook([
                 'url' => $url,
@@ -119,12 +119,16 @@ class Instance
         }
     }
 
-    public function start(bool $condition = true, string $method = 'polling'): void
+    public function sync()
     {
         $me = $this->telegram->getMe();
         Logger::info("bot getMe => " . json_encode($me));
         TelegramBot::where(['token' => $this->token])->update(['username' => $me->username, 'nickname' => $me->firstName]);
-//        $this->polling($condition);
+    }
+
+    public function start(bool $condition = true, string $method = 'polling'): void
+    {
+        $this->sync();
         call_user_func([$this, $method], $condition);
     }
 
