@@ -13,5 +13,6 @@ class TelegramTest extends TestCase
         /** @var BotManager $mng */
         $mng = make(BotManager::class);
         $mng->start();
+
     }
 }

@@ -9,6 +9,7 @@ use Hyperf\HttpServer\Router\Router;
 use Hyperf\Redis\RedisFactory;
 use Illuminate\Support\Facades\Log;
 use William\HyperfExtTelegram\Core\BotManager;
+use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
 use function Hyperf\Config\config;
 use Hyperf\Swagger\Annotation as SA;
@@ -157,9 +158,19 @@ class AdminController extends BaseController
             return $this->error(config('telegram.validate_messages')['telegram token not found']);
         }
         try {
+            $oldStatus = $bot->status;
             $bot->update($request->post());
             if ($this->redis->exists('bot:' . $bot->token)) {
                 $this->redis->del('bot:' . $bot->token);
+            }
+            $bot->refresh();
+            if($oldStatus==='running' && $bot->status === 'stopped') {
+                Logger::info("管理员关闭机器人");
+                $this->botManager->stopBot($bot);
+            }
+            if($oldStatus ==='stopped' && $bot->status ==='running') {
+                Logger::info("管理员开启机器人");
+                $this->botManager->startBot($bot);
             }
         } catch (\Exception $e) {
             Log::error($e->getMessage());
@@ -176,6 +187,7 @@ class AdminController extends BaseController
         }
         try {
             $bot->delete();
+            $this->botManager->stopBot($bot);
         } catch (\Exception $e) {
             Log::error($e->getMessage());
             return $this->error($e->getMessage());

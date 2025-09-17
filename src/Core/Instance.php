@@ -36,6 +36,8 @@ class Instance
     protected int $botID;
     protected $keyboards;
     protected TelegramBot $bot;
+    private $running = true;
+    private $mode = 'pulling';
 
     public function __construct(TelegramBot $bot)
     {
@@ -78,19 +80,21 @@ class Instance
     public function webhook(bool $condition = true): void
     {
         if ($condition) {
-            $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE') .$this->bot->id;
+            $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE') . $this->bot->id;
             Logger::debug("添加webhook:" . $url);
             $this->telegram->setWebhook([
                 'url' => $url,
             ]);
+            $this->running = true;
         }
     }
 
-    public function polling(bool $condition): void
+    public function pulling(bool $condition): void
     {
         $offset = 0;
         $this->telegram->deleteWebhook();
-        while ($condition) {
+        $this->running = true;
+        while ($this->running) {
             try {
                 $updates = $this->telegram->getUpdates([
                     'offset' => $offset,
@@ -110,7 +114,7 @@ class Instance
                         Logger::error("未定义的错误处理器 {$e->getMessage()}");
                     }
                 } catch (\Exception $e) {
-                    Logger::error("polling 异常 {$e->getMessage()}");
+                    Logger::error("pulling 异常 {$e->getMessage()}");
                 }
 
             } catch (\Exception $e) {
@@ -126,9 +130,10 @@ class Instance
         TelegramBot::where(['token' => $this->token])->update(['username' => $me->username, 'nickname' => $me->firstName]);
     }
 
-    public function start(bool $condition = true, string $method = 'polling'): void
+    public function start(bool $condition = true, string $method = 'pulling'): void
     {
         $this->sync();
+        $this->mode = $method;
         call_user_func([$this, $method], $condition);
     }
 
@@ -148,7 +153,7 @@ class Instance
         $locale = $this->redis->get('locale:' . $this->botID . ':' . $chatId);
         if (!$locale) {
             $botCache = $this->getBotCache();
-            $locale = $botCache['language'] ?: 'zh_CN';
+            $locale = $botCache['language'] ?? 'zh_CN';
         }
         return $locale;
     }
@@ -594,5 +599,22 @@ class Instance
             Logger::error("获取头像异常：{$e->getMessage()}");
         }
         return "";
+    }
+
+    public function isRunning()
+    {
+        return $this->running;
+    }
+
+    public function stop(): void
+    {
+        Logger::debug("正在关闭机器人...");
+        if ($this->isRunning()) {
+            $this->running = false;
+            if ($this->mode === 'webhook') {
+                Logger::debug("删除webhook");
+                $this->telegram->deleteWebhook();
+            }
+        }
     }
 }

@@ -70,17 +70,19 @@ class BotManager
 
     public function start(): void
     {
+        echo 111;
         $mode = \Hyperf\Support\env('TELEGRAM_MODE');
         $env = \Hyperf\Support\env('APP_ENV');
         Logger::debug("当前环境：$env 模式 $mode");
-        if (\Hyperf\Support\env('APP_ENV') != 'production') {
-            $token = \Hyperf\Config\config('telegram.dev_token');
-            Logger::debug("启动测试机器人 $token");
-            $bot = TelegramBot::updateOrCreate(['token' => $token]);
-            $this->startPulling($bot);
+
+        if ($mode == 'webhook') {
+            $this->startWebhook();
         } else {
-            if ($mode == 'webhook') {
-                $this->startWebhook();
+            if (\Hyperf\Support\env('APP_ENV') != 'production') {
+                $token = \Hyperf\Config\config('telegram.dev_token');
+                Logger::debug("启动测试机器人 $token");
+                $bot = TelegramBot::updateOrCreate(['token' => $token]);
+                $this->startPulling($bot);
             } else {
                 $bots = TelegramBot::all();
                 foreach ($bots as $bot) {
@@ -135,14 +137,20 @@ class BotManager
     {
         $this->logger->info("Worker#{$this->workerId} Starting bot: $token");
         $instance = $this->newInstance($bot);
-        $instance->start(isset($this->bots[$token]), 'polling');
+        $instance->start(isset($this->bots[$token]));
         Logger::info("Worker#{$this->workerId} 关闭机器人：" . $token);
     }
 
-    public function stopBot(string $token): void
+    public function stopBot(TelegramBot $bot): void
     {
-        unset($this->bots[$token]);
-        $this->logger->info("Stopping bot $token ...");
+        $this->logger->info("Stopping bot $bot->username ...");
+        /** @var Instance $instance */
+        if (isset($this->bots[$bot->token])) {
+            $instance = $this->bots[$bot->token];
+            $instance->stop();
+        } else {
+            Logger::debug("关闭机器人失败：{$bot->username} 未运行");
+        }
     }
 
     public function getWorkerId()
@@ -344,5 +352,11 @@ class BotManager
         $bot->status = 'running';
         $bot->save();
         return $instance;
+    }
+
+    public function startBot(TelegramBot $bot)
+    {
+        Logger::info('正在启动机器人' . $bot->username);
+        $this->addBot($bot);
     }
 }
