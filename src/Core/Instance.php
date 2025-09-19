@@ -88,7 +88,7 @@ class Instance
             $this->telegram->setWebhook([
                 'url' => $url,
             ]);
-            ApplicationContext::getContainer()->get(Cache::class)->set("webhook_token:".$this->bot->id, $sign);
+            ApplicationContext::getContainer()->get(Cache::class)->set("webhook_token:" . $this->bot->id, $sign);
             $this->running = true;
         }
     }
@@ -562,9 +562,7 @@ class Instance
     private function updateUserInfo(Update $update): void
     {
         $chatId = $this->getChatId($update); // 消息来自群里面的机器人时，这个chatId变成群ID了，
-        $botToken = $this->getAccessToken();
-        $arr = explode(":", $botToken);
-        $botId = $arr[0];
+        $botId = $this->bot->id;
         $userInfo = [
             'bot_id' => $botId,
             'user_id' => $chatId,
