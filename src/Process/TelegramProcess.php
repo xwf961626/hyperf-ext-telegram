@@ -28,6 +28,7 @@ class TelegramProcess extends AbstractProcess
     {
         try {
             Logger::debug('当前环境：' . env('APP_ENV'));
+            $this->botManager->init(1);
             $this->botManager->start();
         } catch (\Exception $e) {
             Logger::error('启动失败 ' . $e->getMessage() . $e->getTraceAsString());
