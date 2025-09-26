@@ -90,4 +90,12 @@ abstract class AbstractMessage implements ReplyMessageInterface
         ];
     }
 
+    public function newReturnButton($to): array
+    {
+        return [
+            'text' => trans('buttons.return'),
+            'callback_data' => $this->newCallbackData('return', ['to' => $to]),
+        ];
+    }
+
 }

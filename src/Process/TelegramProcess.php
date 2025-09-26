@@ -32,8 +32,8 @@ class TelegramProcess extends AbstractProcess
             $this->botManager->start();
         } catch (\Exception $e) {
             Logger::error('启动失败 ' . $e->getMessage() . $e->getTraceAsString());
-//            sleep(3);
-//            $this->handle();
+            sleep(3);
+            $this->handle();
         }
         while (true) {
             $cmd = $this->redis->get('robot_command');
