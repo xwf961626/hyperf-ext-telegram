@@ -547,7 +547,7 @@ class Instance
 
     private function initUser($chatId): void
     {
-        $botId = $this->botID;
+        $botId = $this->bot->id;
         $user = TelegramUser::where('user_id', $chatId)->where('bot_id', $botId)->first();
         if ($user) {
             Context::set(self::USER_KEY, $user);
