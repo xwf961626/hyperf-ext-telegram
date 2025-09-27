@@ -4,6 +4,8 @@ namespace William\HyperfExtTelegram\Core;
 
 
 use Hyperf\Cache\Cache;
+use Illuminate\Support\Collection;
+use Telegram\Bot\Objects\PhotoSize;
 use William\HyperfExtTelegram\Helper\Logger;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\Redis\RedisFactory;
@@ -33,6 +35,7 @@ class MessageBuilder
      */
     protected ?string $shouldSaveFileId = null;
     protected Cache $cache;
+    protected int $fileIdExpires = 0;
 
     public function __construct()
     {
@@ -177,55 +180,45 @@ class MessageBuilder
             /** @var Message $msg */
             $msg = call_user_func([$telegram, $method], $params);
             if ($this->shouldSaveFileId && $msg instanceof Message) {
-                if($fileId = $this->getResponseFileId($msg)) {
+                if ($fileId = $this->getResponseFileId($msg)) {
                     $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
-                    $redis->set(self::FILE_KEY . $this->shouldSaveFileId, $fileId);
+                    $redis->set(self::FILE_KEY . $this->shouldSaveFileId, $fileId, $this->fileIdExpires);
                 }
             }
             return $msg;
         }
     }
 
-    protected function getResponseFileId(Message $msg):?string
+    protected function getResponseFileId(Message $msg): ?string
     {
         $fileId = null;
         // 🖼️ 图片
         if (!empty($msg->photo)) {
             // photo 是数组，一般最后一个分辨率最高
-            $fileId = end($msg->photo)->fileId;
-        }
-
-        // 📹 视频
+            /** @var Collection $photo */
+            $photo = $msg->photo;
+            /** @var PhotoSize $file */
+            $file = $photo->last;
+            $fileId = $file->fileId ?? null;
+        } // 📹 视频
         elseif (!empty($msg->video)) {
             $fileId = $msg->video->fileId;
-        }
-
-        // 🎬 动图（animation/gif）
+        } // 🎬 动图（animation/gif）
         elseif (!empty($msg->animation)) {
             $fileId = $msg->animation->fileId;
-        }
-
-        // 🎧 音频
+        } // 🎧 音频
         elseif (!empty($msg->audio)) {
             $fileId = $msg->audio->fileId;
-        }
-
-        // 🎤 语音
+        } // 🎤 语音
         elseif (!empty($msg->voice)) {
             $fileId = $msg->voice->fileId;
-        }
-
-        // 📎 文件
+        } // 📎 文件
         elseif (!empty($msg->document)) {
             $fileId = $msg->document->fileId;
-        }
-
-        // 😀 贴纸
+        } // 😀 贴纸
         elseif (!empty($msg->sticker)) {
             $fileId = $msg->sticker->fileId;
-        }
-
-        // 🗣️ 视频语音消息（video_note）
+        } // 🗣️ 视频语音消息（video_note）
         elseif (!empty($msg->videoNote)) {
             $fileId = $msg->videoNote->fileId;
         }
@@ -279,12 +272,23 @@ class MessageBuilder
         return $this;
     }
 
-    public function photo(string $filename): self
+    public function photo(string $filename, int $expires = 0): self
     {
         $fileId = $this->getFileId($filename);
         $this->messageType = 'photo';
         $this->message['photo'] = $fileId;
         $this->textField = 'caption';
+        $this->fileIdExpires = $expires;
+        return $this;
+    }
+
+    public function media(string $filename, string $type, int $expires = 0): self
+    {
+        $fileId = $this->getFileId($filename);
+        $this->messageType = $type;
+        $this->message[$type] = $fileId;
+        $this->textField = 'caption';
+        $this->fileIdExpires = $expires;
         return $this;
     }
 
@@ -294,18 +298,22 @@ class MessageBuilder
         $fileId = $redis->get(self::FILE_KEY . $filename);
         if (!$fileId) {
             $videoPath = BASE_PATH . '/storage/bot/' . $filename;
+            Logger::debug("媒体FileID缓冲不存在，重新上传");
             $fileId = InputFile::create($videoPath);
             $this->shouldSaveFileId = $filename;
+        } else {
+            Logger::debug("使用缓存FileID：$fileId");
         }
         return $fileId;
     }
 
-    public function video(string $video): self
+    public function video(string $video, int $expires = 0): self
     {
         $fileId = $this->getFileId($video);
         $this->messageType = 'video';
         $this->message['video'] = $fileId;
         $this->textField = 'caption';
+        $this->fileIdExpires = $expires;
         return $this;
     }
 }
