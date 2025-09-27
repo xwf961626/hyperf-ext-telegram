@@ -177,7 +177,7 @@ class MessageBuilder
             /** @var Message $msg */
             $msg = call_user_func([$telegram, $method], $params);
             if ($this->shouldSaveFileId && $msg instanceof Message) {
-                if($fileId = $this->getFileId($msg)) {
+                if($fileId = $this->getResponseFileId($msg)) {
                     $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
                     $redis->set(self::FILE_KEY . $this->shouldSaveFileId, $fileId);
                 }
@@ -186,7 +186,7 @@ class MessageBuilder
         }
     }
 
-    protected function getFileId(Message $msg):?string
+    protected function getResponseFileId(Message $msg):?string
     {
         $fileId = null;
         // 🖼️ 图片
