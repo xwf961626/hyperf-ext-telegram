@@ -2,12 +2,14 @@
 
 namespace William\HyperfExtTelegram\Core;
 
+use Hyperf\Cache\Cache;
 use William\HyperfExtTelegram\Helper\Logger;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\Redis\Redis;
 use Hyperf\Redis\RedisFactory;
 use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
+use function Hyperf\Support\make;
 use function Hyperf\Translation\trans;
 
 
@@ -69,7 +71,7 @@ abstract class AbstractMessage implements ReplyMessageInterface
         return trans("message.$key", $params);
     }
 
-    public function newCallbackData($route = '', $params = [])
+    public function newCallbackData($route = '', $params = [], int $ttl = 0)
     {
         if (!$route) $route = 'do_nothing';
         if (!empty($params)) {
@@ -79,7 +81,13 @@ abstract class AbstractMessage implements ReplyMessageInterface
             }
             $route = '/' . trim($route, '/') . '?' . implode("&", $queries);
         }
-        return $route;
+        $hashKey = $route . $this->telegram->getAccessToken().$this->chatId;
+        Logger::debug("hash key => $hashKey");
+        $hash = md5($hashKey);
+        $cache = make(Cache::class);
+        $cache->set("callback_query:$hash", $route, $ttl);
+        Logger::debug("new callbackdata: $hash => $route");
+        return $hash;
     }
 
     public function newButton($key, $params = [], $route = '', $routeData = []): array

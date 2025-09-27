@@ -39,6 +39,7 @@ class Instance
     protected TelegramBot $bot;
     private $running = true;
     private $mode = 'pulling';
+    protected Cache $cache;
 
     public function __construct(TelegramBot $bot)
     {
@@ -47,6 +48,7 @@ class Instance
         $arr = explode(':', $bot->token);
         $this->botID = (int)$arr[0];
         $this->redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
+        $this->cache = make(Cache::class);
         $this->clientFactory = ApplicationContext::getContainer()->get(ClientFactory::class);
         $this->translator = ApplicationContext::getContainer()->get(TranslatorInterface::class);
         $this->init();
@@ -182,8 +184,13 @@ class Instance
         // 1. 回调查询（按钮）
         if ($update->isType('callback_query')) {
             $callback = $update->getCallbackQuery();
-            $callbackData = $callback->getData();
-
+            $callbackDataKey = $callback->getData();
+            Logger::debug("on callback query <= " . $callbackDataKey);
+            $callbackData = $this->cache->get($callbackDataKey);
+            if(!$callbackData) {
+                Logger::error("callback query 不存在或已过期");
+                return;
+            }
             $parts = parse_url($callbackData);
 
             // 第二步：解析 query 参数
