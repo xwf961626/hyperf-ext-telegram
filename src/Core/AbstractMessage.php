@@ -84,8 +84,9 @@ abstract class AbstractMessage implements ReplyMessageInterface
         $hashKey = $route . $this->telegram->getAccessToken().$this->chatId;
         Logger::debug("hash key => $hashKey");
         $hash = md5($hashKey);
+        $hash = "callback_query:$hash";
         $cache = make(Cache::class);
-        $cache->set("callback_query:$hash", $route, $ttl);
+        $cache->set($hash, $route, $ttl);
         Logger::debug("new callbackdata: $hash => $route");
         return $hash;
     }
