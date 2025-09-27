@@ -7,8 +7,6 @@ use Hyperf\Cache\Cache;
 use Illuminate\Support\Collection;
 use Telegram\Bot\Objects\PhotoSize;
 use William\HyperfExtTelegram\Helper\Logger;
-use Hyperf\Context\ApplicationContext;
-use Hyperf\Redis\RedisFactory;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Telegram\Bot\Api;
@@ -181,7 +179,7 @@ class MessageBuilder
             $msg = call_user_func([$telegram, $method], $params);
             if ($this->shouldSaveFileId && $msg instanceof Message) {
                 if ($fileId = $this->getResponseFileId($msg)) {
-                    $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
+                    $redis = make(Cache::class);
                     $redis->set(self::FILE_KEY . $this->shouldSaveFileId, $fileId, $this->fileIdExpires);
                 }
             }
@@ -294,7 +292,7 @@ class MessageBuilder
 
     protected function getFileId(string $filename): mixed
     {
-        $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
+        $redis = make(Cache::class);
         $fileId = $redis->get(self::FILE_KEY . $filename);
         if (!$fileId) {
             $videoPath = BASE_PATH . '/storage/bot/' . $filename;
