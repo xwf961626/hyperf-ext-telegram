@@ -177,12 +177,59 @@ class MessageBuilder
             /** @var Message $msg */
             $msg = call_user_func([$telegram, $method], $params);
             if ($this->shouldSaveFileId && $msg instanceof Message) {
-                $fileId = $msg->video->fileId;
-                $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
-                $redis->set(self::FILE_KEY . $this->shouldSaveFileId, $fileId);
+                if($fileId = $this->getFileId($msg)) {
+                    $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
+                    $redis->set(self::FILE_KEY . $this->shouldSaveFileId, $fileId);
+                }
             }
             return $msg;
         }
+    }
+
+    protected function getFileId(Message $msg):?string
+    {
+        $fileId = null;
+        // 🖼️ 图片
+        if (!empty($msg->photo)) {
+            // photo 是数组，一般最后一个分辨率最高
+            $fileId = end($msg->photo)->fileId;
+        }
+
+        // 📹 视频
+        elseif (!empty($msg->video)) {
+            $fileId = $msg->video->fileId;
+        }
+
+        // 🎬 动图（animation/gif）
+        elseif (!empty($msg->animation)) {
+            $fileId = $msg->animation->fileId;
+        }
+
+        // 🎧 音频
+        elseif (!empty($msg->audio)) {
+            $fileId = $msg->audio->fileId;
+        }
+
+        // 🎤 语音
+        elseif (!empty($msg->voice)) {
+            $fileId = $msg->voice->fileId;
+        }
+
+        // 📎 文件
+        elseif (!empty($msg->document)) {
+            $fileId = $msg->document->fileId;
+        }
+
+        // 😀 贴纸
+        elseif (!empty($msg->sticker)) {
+            $fileId = $msg->sticker->fileId;
+        }
+
+        // 🗣️ 视频语音消息（video_note）
+        elseif (!empty($msg->videoNote)) {
+            $fileId = $msg->videoNote->fileId;
+        }
+        return $fileId;
     }
 
     /**
@@ -232,25 +279,32 @@ class MessageBuilder
         return $this;
     }
 
-    public function photo(mixed $fopen): self
+    public function photo(string $filename): self
     {
+        $fileId = $this->getFileId($filename);
         $this->messageType = 'photo';
-        $this->message['photo'] = $fopen;
+        $this->message['photo'] = $fileId;
         $this->textField = 'caption';
         return $this;
     }
 
-    public function video(string $video): self
+    protected function getFileId(string $filename): mixed
     {
         $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
-        $videoId = $redis->get(self::FILE_KEY . $video);
-        if (!$videoId) {
-            $videoPath = BASE_PATH . '/runtime/uploads/' . $video;
-            $videoId = InputFile::create($videoPath);
-            $this->shouldSaveFileId = $video;
+        $fileId = $redis->get(self::FILE_KEY . $filename);
+        if (!$fileId) {
+            $videoPath = BASE_PATH . '/storage/bot/' . $filename;
+            $fileId = InputFile::create($videoPath);
+            $this->shouldSaveFileId = $filename;
         }
+        return $fileId;
+    }
+
+    public function video(string $video): self
+    {
+        $fileId = $this->getFileId($video);
         $this->messageType = 'video';
-        $this->message['video'] = $videoId;
+        $this->message['video'] = $fileId;
         $this->textField = 'caption';
         return $this;
     }

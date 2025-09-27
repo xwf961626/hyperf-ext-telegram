@@ -134,6 +134,8 @@ class Instance
         $me = $this->telegram->getMe();
         Logger::info("bot getMe => " . json_encode($me));
         TelegramBot::where(['token' => $this->token])->update(['username' => $me->username, 'nickname' => $me->firstName]);
+        $key = 'bot:' . $this->token;
+        $this->redis->del($key);
     }
 
     public function start(bool $condition = true, string $method = 'pulling'): void
