@@ -62,20 +62,7 @@ class Instance
         $telegram = TelegramBotFactory::create($this->clientFactory, $this->token, [],
             \Hyperf\Support\env('TG_ENDPOINT', 'https://api.telegram.org'));
         $telegram->setMyCommands([
-            'commands' => [
-                [
-                    'command' => 'start',
-                    'description' => '开始使用'
-                ],
-                [
-                    'command' => 'language',
-                    'description' => '切换语言'
-                ],
-                [
-                    'command' => 'help',
-                    'description' => '获取帮助'
-                ]
-            ]
+            'commands' => config('telegram.commands')
         ]);
         $this->telegram = $telegram;
     }
@@ -116,6 +103,8 @@ class Instance
             } catch (RuntimeError $e) {
                 try {
                     if ($errorHandler = ApplicationContext::getContainer()->get(ErrorHandlerFactory::class)->get($e->getMessage())) {
+                        $handlerClass = get_class($errorHandler);
+                        Logger::debug("Error {$e->getMessage()} handled by {$handlerClass}.");
                         $errorHandler->notify($this, $update, $e->getExtra());
                     } else {
                         Logger::error("未定义的错误处理器 {$e->getMessage()}");

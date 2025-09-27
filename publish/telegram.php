@@ -9,4 +9,18 @@ return [
         'telegram token is invalid' => '机器人Token无效！',
         'telegram token not found' => '机器人未找到！',
     ],
+    'commands' => [
+        [
+            'command' => 'start',
+            'description' => '开始使用'
+        ],
+        [
+            'command' => 'language',
+            'description' => '切换语言'
+        ],
+        [
+            'command' => 'help',
+            'description' => '获取帮助'
+        ]
+    ]
 ];
