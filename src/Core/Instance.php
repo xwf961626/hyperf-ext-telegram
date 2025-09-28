@@ -228,7 +228,15 @@ class Instance
             Logger::info('更新用户信息');
             $this->updateUserInfo($update);
         }
-        $handler = AnnotationRegistry::getCommandHandler($command);
+
+        $handlerConfig = config('telegram.command_handlers');
+        $handler = null;
+        if(isset($handlerConfig[trim($command)])) {
+            $handler = make($handlerConfig[trim($command)]);
+        }
+        if(!$handler) {
+            $handler = AnnotationRegistry::getCommandHandler($command);
+        }
         if ($handler) {
             /** @var CommandInterface $instance */
             [$instance, $method] = $handler;
@@ -288,7 +296,14 @@ class Instance
     {
         Logger::info('handle query callback: ' . $path . ' params=' . json_encode($params));
         Context::set(self::QUERY_PARAMS_KEY, $params);
-        $handler = AnnotationRegistry::getQueryCallbackHandler($path);
+        $handlerConfig = config('telegram.callback_handlers');
+        $handler = null;
+        if(isset($handlerConfig[trim($path)])) {
+            $handler = make($handlerConfig[trim($path)]);
+        }
+        if(!$handler) {
+            $handler = AnnotationRegistry::getQueryCallbackHandler($path);
+        }
         if ($handler) {
             [$class, $method] = $handler;
             /** @var QueryCallbackInterface $instance */

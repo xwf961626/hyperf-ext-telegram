@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'welcome' => \William\HyperfExtTelegram\Component\WelcomeMessage::class,
     'mode' => env('TELEGRAM_MODE', 'pulling'),
     'dev_token' => env('TELEGRAM_BOT_TOKEN', ''),
     'get_avatar' => null, // null|callable
@@ -22,5 +23,12 @@ return [
             'command' => 'help',
             'description' => '获取帮助'
         ]
+    ],
+    'command_handlers' => [
+        'start' => \William\HyperfExtTelegram\Component\StartCommand::class,
+        'language' => \William\HyperfExtTelegram\Component\Language\LanguageCommand::class,
+    ],
+    'callback_handlers' => [
+        'switch_language' => \William\HyperfExtTelegram\Component\Language\SwitchLanguage::class,
     ]
 ];

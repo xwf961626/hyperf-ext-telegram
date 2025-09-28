@@ -7,8 +7,8 @@ use William\HyperfExtTelegram\Component\WelcomeMessage;
 use William\HyperfExtTelegram\Core\AbstractQueryCallback;
 use William\HyperfExtTelegram\Core\Annotation\QueryCallback;
 use William\HyperfExtTelegram\Core\LangContext;
+use function Hyperf\Config\config;
 
-#[QueryCallback(path: '/switch_language')]
 class SwitchLanguage extends AbstractQueryCallback
 {
     /**
@@ -19,7 +19,7 @@ class SwitchLanguage extends AbstractQueryCallback
     {
         $this->telegramInstance->changeLanguage($this->telegramUpdate);
 
-        $this->reply(WelcomeMessage::class,
+        $this->reply(config('telegram.welcome'),
             $this->telegramInstance->getKeyboards()[LangContext::get()],
             $this->telegramInstance->getBotCache()['username']
         );

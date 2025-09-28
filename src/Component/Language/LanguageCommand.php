@@ -8,7 +8,6 @@ use William\HyperfExtTelegram\Core\AbstractCommand;
 use William\HyperfExtTelegram\Core\Annotation\Command;
 use William\HyperfExtTelegram\Core\Instance;
 
-#[Command(command: '/language')]
 class LanguageCommand extends AbstractCommand
 {
 
