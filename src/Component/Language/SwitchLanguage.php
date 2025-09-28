@@ -3,9 +3,7 @@
 namespace William\HyperfExtTelegram\Component\Language;
 
 use Telegram\Bot\Exceptions\TelegramSDKException;
-use William\HyperfExtTelegram\Component\WelcomeMessage;
 use William\HyperfExtTelegram\Core\AbstractQueryCallback;
-use William\HyperfExtTelegram\Core\Annotation\QueryCallback;
 use William\HyperfExtTelegram\Core\LangContext;
 use function Hyperf\Config\config;
 
@@ -18,9 +16,10 @@ class SwitchLanguage extends AbstractQueryCallback
     function _handle(): void
     {
         $this->telegramInstance->changeLanguage($this->telegramUpdate);
+        $keyboards = $this->telegramInstance->getKeyboards();
 
         $this->reply(config('telegram.welcome'),
-            $this->telegramInstance->getKeyboards()[LangContext::get()],
+            $keyboards[LangContext::get()]??[],
             $this->telegramInstance->getBotCache()['username']
         );
     }

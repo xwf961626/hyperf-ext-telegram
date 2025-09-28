@@ -2,6 +2,7 @@
 
 return [
     'welcome' => \William\HyperfExtTelegram\Component\WelcomeMessage::class,
+    'languages' => ['zh_CN', 'en'],
     'mode' => env('TELEGRAM_MODE', 'pulling'),
     'dev_token' => env('TELEGRAM_BOT_TOKEN', ''),
     'get_avatar' => null, // null|callable

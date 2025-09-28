@@ -223,16 +223,18 @@ class Instance
      */
     protected function handleCommand(string $command, Update $update): void
     {
-        Logger::info('handle Command: ' . $command);
+        Logger::info('handle Command: ' . trim($command));
         if ($command == '/start') {
             Logger::info('更新用户信息');
             $this->updateUserInfo($update);
         }
 
         $handlerConfig = config('telegram.command_handlers');
+        Logger::debug('command_handlers config =>'.json_encode($handlerConfig));
         $handler = null;
-        if(isset($handlerConfig[trim($command)])) {
-            $handler = make($handlerConfig[trim($command)]);
+        if(isset($handlerConfig[$command])) {
+            $instance = make($handlerConfig[$command]);
+            $handler = [$instance, 'handle'];
         }
         if(!$handler) {
             $handler = AnnotationRegistry::getCommandHandler($command);
@@ -298,8 +300,8 @@ class Instance
         Context::set(self::QUERY_PARAMS_KEY, $params);
         $handlerConfig = config('telegram.callback_handlers');
         $handler = null;
-        if(isset($handlerConfig[trim($path)])) {
-            $handler = make($handlerConfig[trim($path)]);
+        if(isset($handlerConfig[$path])) {
+            $handler = [$handlerConfig[$path], 'handle'];
         }
         if(!$handler) {
             $handler = AnnotationRegistry::getQueryCallbackHandler($path);
