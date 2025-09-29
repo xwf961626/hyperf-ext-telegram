@@ -197,7 +197,11 @@ class MessageBuilder
             $photo = $msg->photo;
             /** @var PhotoSize $file */
             $file = $photo->last;
-            $fileId = $file->fileId ?? null;
+            if($file->fileId) {
+                /** @var PhotoSize $fi */
+                $fi = $file->fileId;
+                $fileId = $fi->fileId ?? null;
+            }
         } // 📹 视频
         elseif (!empty($msg->video)) {
             $fileId = $msg->video->fileId;
