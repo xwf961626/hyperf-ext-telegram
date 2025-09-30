@@ -213,6 +213,7 @@ class Instance
                     $params = ['command_data' => $arr2];
                     Context::set(self::QUERY_PARAMS_KEY, $params);
                 }
+                $this->handleCommand($command, $update);
             } else {
                 $this->handleText($update, $text);
             }
