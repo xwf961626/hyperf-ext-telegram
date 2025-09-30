@@ -201,17 +201,18 @@ class Instance
             $text = $message->getText();
 
             if (str_starts_with($text, '/')) {
-                $command = explode(' ', $text)[0];
+                $commands = explode(' ', $text);
+                $command = $commands[0];
+                $params = $commands[1];
                 $arr1 = explode('@', $command);
                 if (count($arr1) > 1) {
                     $command = $arr1[0];
                 }
-                $arr2 = explode(' ', $command);
+                $arr2 = explode('_', $params);
                 if (count($arr2) > 1) {
-                    $params = ['command_data' => $arr2[1]];
+                    $params = ['command_data' => $arr2];
                     Context::set(self::QUERY_PARAMS_KEY, $params);
                 }
-                $this->handleCommand($command, $update);
             } else {
                 $this->handleText($update, $text);
             }
