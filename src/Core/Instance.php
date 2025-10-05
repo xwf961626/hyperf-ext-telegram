@@ -169,14 +169,14 @@ class Instance
         $chatId = $chat->id;
         Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
         $this->initLang($chatId);
-        $this->initUser($chatId);
+        $this->initUser($chatId, $update);
         // 1. 回调查询（按钮）
         if ($update->isType('callback_query')) {
             $callback = $update->getCallbackQuery();
             $callbackDataKey = $callback->getData();
             Logger::debug("on callback query <= " . $callbackDataKey);
             $callbackData = $this->cache->get($callbackDataKey);
-            if(!$callbackData) {
+            if (!$callbackData) {
                 Logger::error("callback query 不存在或已过期");
                 return;
             }
@@ -207,7 +207,7 @@ class Instance
                 if (count($arr1) > 1) {
                     $command = $arr1[0];
                 }
-                if(isset($commands[1])){
+                if (isset($commands[1])) {
                     $arr2 = explode('_', $commands[1]);
                     if (!empty($arr2)) {
                         $params = ['command_data' => $arr2];
@@ -234,13 +234,13 @@ class Instance
         }
 
         $handlerConfig = config('telegram.command_handlers');
-        Logger::debug('command_handlers config =>'.json_encode($handlerConfig));
+        Logger::debug('command_handlers config =>' . json_encode($handlerConfig));
         $handler = null;
-        if(isset($handlerConfig[$command])) {
+        if (isset($handlerConfig[$command])) {
             $instance = make($handlerConfig[$command]);
             $handler = [$instance, 'handle'];
         }
-        if(!$handler) {
+        if (!$handler) {
             $handler = AnnotationRegistry::getCommandHandler($command);
         }
         if ($handler) {
@@ -304,10 +304,10 @@ class Instance
         Context::set(self::QUERY_PARAMS_KEY, $params);
         $handlerConfig = config('telegram.callback_handlers');
         $handler = null;
-        if(isset($handlerConfig[$path])) {
+        if (isset($handlerConfig[$path])) {
             $handler = [$handlerConfig[$path], 'handle'];
         }
-        if(!$handler) {
+        if (!$handler) {
             $handler = AnnotationRegistry::getQueryCallbackHandler($path);
         }
         if ($handler) {
@@ -564,12 +564,14 @@ class Instance
         $this->translator->setLocale($language);
     }
 
-    private function initUser($chatId): void
+    private function initUser($chatId, $update): void
     {
         $botId = $this->bot->id;
         $user = TelegramUser::where('user_id', $chatId)->where('bot_id', $botId)->first();
         if ($user) {
             Context::set(self::USER_KEY, $user);
+        } else {
+            $this->updateUserInfo($update);
         }
     }
 
