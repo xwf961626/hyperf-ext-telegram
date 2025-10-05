@@ -203,16 +203,18 @@ class Instance
             if (str_starts_with($text, '/')) {
                 $commands = explode(' ', $text);
                 $command = $commands[0];
-                $params = $commands[1];
                 $arr1 = explode('@', $command);
                 if (count($arr1) > 1) {
                     $command = $arr1[0];
                 }
-                $arr2 = explode('_', $params);
-                if (count($arr2) > 1) {
-                    $params = ['command_data' => $arr2];
-                    Context::set(self::QUERY_PARAMS_KEY, $params);
+                if(isset($commands[1])){
+                    $arr2 = explode('_', $commands[1]);
+                    if (!empty($arr2)) {
+                        $params = ['command_data' => $arr2];
+                        Context::set(self::QUERY_PARAMS_KEY, $params);
+                    }
                 }
+
                 $this->handleCommand($command, $update);
             } else {
                 $this->handleText($update, $text);
