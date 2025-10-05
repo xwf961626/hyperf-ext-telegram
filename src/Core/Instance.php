@@ -90,6 +90,7 @@ class Instance
         Logger::debug("开始 pulling...");
         while ($this->running) {
             try {
+
                 $updates = $this->telegram->getUpdates([
                     'offset' => $offset,
                     'limit' => 100,
@@ -113,7 +114,7 @@ class Instance
                     Logger::error("pulling 异常 {$e->getMessage()}");
                 }
 
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Logger::info("未知异常:" . $e->getMessage() . $e->getTraceAsString());
             }
         }
@@ -597,6 +598,7 @@ class Instance
             'user_id' => $chatId,
         ], $userInfo);
         Logger::info('同步用户信息成功：' . $user->id . ' => ' . json_encode($userInfo));
+        Context::set(self::USER_KEY, $user);
     }
 
     private function getAvatar(Update $update): string
