@@ -26,7 +26,7 @@ class RechargeService
     public function getSwitchButton($secretKey, $payCurrency, $orderId, $buttonKey, $qc)
     {
         $switchToCurrency = $payCurrency === 'TRX' ? 'USDT' : 'TRX';
-        BotHelper::newButton($secretKey, $buttonKey, ['to_currency' => $switchToCurrency],
+        return BotHelper::newButton($secretKey, $buttonKey, ['to_currency' => $switchToCurrency],
             $qc, [
                 'to' => $switchToCurrency,
                 'id' => $orderId
