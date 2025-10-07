@@ -34,6 +34,10 @@ class MessageBuilder
     protected ?string $shouldSaveFileId = null;
     protected Cache $cache;
     protected int $fileIdExpires = 0;
+    /**
+     * @var mixed|string
+     */
+    protected mixed $botId = '';
 
     public function __construct()
     {
@@ -42,11 +46,12 @@ class MessageBuilder
         $this->cache = make(Cache::class);
     }
 
-    public static function newMessage($chatId)
+    public static function newMessage($chatId, $botId = '')
     {
         $instance = new self();
         $instance->locale = LangContext::get();
         $instance->chatId($chatId);
+        $instance->botId = $botId;
         return $instance;
     }
 
@@ -180,7 +185,7 @@ class MessageBuilder
             if ($this->shouldSaveFileId && $msg instanceof Message) {
                 if ($fileId = $this->getResponseFileId($msg)) {
                     $redis = make(Cache::class);
-                    $redis->set(self::FILE_KEY . $this->shouldSaveFileId, $fileId, $this->fileIdExpires);
+                    $redis->set(self::FILE_KEY . $this->botId . ':' . $this->shouldSaveFileId, $fileId, $this->fileIdExpires);
                 }
             }
             return $msg;
@@ -197,7 +202,7 @@ class MessageBuilder
             $photo = $msg->photo;
             /** @var PhotoSize $file */
             $file = $photo->last;
-            if($file->fileId) {
+            if ($file->fileId) {
                 /** @var PhotoSize $fi */
                 $fi = $file->fileId;
                 $fileId = $fi->fileId ?? null;
@@ -297,7 +302,7 @@ class MessageBuilder
     protected function getFileId(string $filename): mixed
     {
         $redis = make(Cache::class);
-        $fileId = $redis->get(self::FILE_KEY . $filename);
+        $fileId = $redis->get(self::FILE_KEY . $this->botId . ':' . $filename);
         if (!$fileId) {
             $videoPath = BASE_PATH . '/storage/bot/' . $filename;
             Logger::debug("媒体FileID缓冲不存在，重新上传");

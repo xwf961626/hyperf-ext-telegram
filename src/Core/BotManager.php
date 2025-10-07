@@ -83,7 +83,7 @@ class BotManager
                 $bot = TelegramBot::updateOrCreate(['token' => $token]);
                 $this->startPulling($bot);
             } else {
-                $bots = TelegramBot::all();
+                $bots = TelegramBot::where('status', '<>', 'invalid')->get();
                 foreach ($bots as $bot) {
                     $this->startPulling($bot);
                 }
