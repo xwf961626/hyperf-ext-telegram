@@ -111,7 +111,11 @@ class BotManager
     {
         $bots = TelegramBot::all();
         foreach ($bots as $bot) {
+            Logger::debug("starting webhook: {$bot->token}");
+            Logger::debug("new instance...");
             $instance = $this->newInstance($bot);
+            Logger::debug("new instance success");
+            Logger::debug("starting instance...");
             $instance->start(isset($this->bots[$bot->token]), 'webhook');
         }
     }

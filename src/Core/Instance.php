@@ -61,22 +61,31 @@ class Instance
     {
         $telegram = TelegramBotFactory::create($this->clientFactory, $this->token, [],
             \Hyperf\Support\env('TG_ENDPOINT', 'https://api.telegram.org'));
-        $telegram->setMyCommands([
-            'commands' => config('telegram.commands')
-        ]);
         $this->telegram = $telegram;
+    }
+
+    public function setCommands(): void
+    {
+        $commands = config('telegram.commands');
+        Logger::debug("set commands => ".json_encode($commands, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+        $this->telegram->setMyCommands([
+            'commands' => $commands
+        ]);
     }
 
     public function webhook(bool $condition = true): void
     {
+        Logger::debug("instance starting webhook...");
         if ($condition) {
             $sign = md5($this->bot->id . $this->bot->token . time() . random_bytes(10));
             $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE');
-            $url = "{$url}{$this->bot->id}/{$sign}";
+            $url = rtrim($url, '/');
+            $url = "{$url}/{$this->bot->id}/{$sign}";
             Logger::debug("添加webhook:" . $url);
             $this->telegram->setWebhook([
                 'url' => $url,
             ]);
+            $this->setCommands();
             ApplicationContext::getContainer()->get(Cache::class)->set("webhook_token:" . $this->bot->id, $sign);
             $this->running = true;
         }
@@ -86,6 +95,7 @@ class Instance
     {
         $offset = 0;
         $this->telegram->deleteWebhook();
+        $this->setCommands();
         $this->running = true;
         Logger::debug("开始 pulling...");
         while ($this->running) {
