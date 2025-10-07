@@ -152,7 +152,7 @@ class Instance
         $key = 'bot:' . $this->token;
         if (!$this->redis->exists($key)) {
             $botCache = TelegramBot::where('token', $this->token)->first();
-            $this->redis->set($key, json_encode($botCache));
+            $this->redis->setex($key, 3600, json_encode($botCache));
             return $botCache->toArray();
         }
         return json_decode($this->redis->get($key), true);

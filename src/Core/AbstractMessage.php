@@ -53,8 +53,7 @@ abstract class AbstractMessage implements ReplyMessageInterface
         if (!$this->redis->exists($key)) {
             Logger::info("使用缓存 Message#$key");
             $params = $getParams();
-            $this->redis->set($key, json_encode($params));
-            $this->redis->expire($key, 30);
+            $this->redis->setex($key, 30, json_encode($params));
         } else {
             $params = json_decode($this->redis->get($key), true);
         }
@@ -71,7 +70,7 @@ abstract class AbstractMessage implements ReplyMessageInterface
         return trans("message.$key", $params);
     }
 
-    public function newCallbackData($route = '', $params = [], int $ttl = 0)
+    public function newCallbackData($route = '', $params = [], int $ttl = 3600)
     {
         if (!$route) $route = 'do_nothing';
         if (!empty($params)) {
