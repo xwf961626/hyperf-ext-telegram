@@ -77,7 +77,7 @@ class BotManager
         if ($mode == 'webhook') {
             $this->startWebhook();
         } else {
-            if (\Hyperf\Support\env('APP_ENV') != 'production') {
+            if (\Hyperf\Support\env('APP_ENV') != 'prod') {
                 $token = \Hyperf\Config\config('telegram.dev_token');
                 Logger::debug("启动测试机器人 $token");
                 $bot = TelegramBot::updateOrCreate(['token' => $token]);

@@ -23,9 +23,10 @@ abstract class AbstractMessage implements ReplyMessageInterface
         $this->redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
     }
 
-    protected function newMessage($msgType = 'Message', $botId = ''): MessageBuilder
+    protected function newMessage($msgType = 'Message'): MessageBuilder
     {
-        $builder = MessageBuilder::newMessage($this->chatId, $botId);
+        $arr = explode(':', $this->telegram->getAccessToken());
+        $builder = MessageBuilder::newMessage($this->chatId, $arr[0]);
         $builder->messageType($msgType);
         return $builder;
     }
