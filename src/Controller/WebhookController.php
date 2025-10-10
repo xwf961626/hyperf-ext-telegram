@@ -42,37 +42,43 @@ class WebhookController extends BaseController
     public function handleWebhook($botId, $token)
     {
         $sign = $this->cache->get("webhook_token:$botId");
-        if (!$sign || $sign !== $token) return $this->error('Invalid signature', 403);
+        if (!$sign || $sign !== $token) {
+            return $this->error('Invalid signature', 403);
+        }
+
         $bot = TelegramBot::find($botId);
         if (!$bot) {
             return $this->error('Invalid botId', 401);
         }
 
         $updates = $this->request->all();
+        $instance = new Instance($bot);
+        $update = Update::make($updates);
 
-        \Hyperf\Coroutine\go(function () use ($bot, $updates) {
-            try {
-                $instance = new Instance($bot);
-                $update = Update::make($updates);
-                $lockKey = "telegram:update_lock:{$update->getChat()->id}";
-                Logger::debug("update lock: $lockKey");
-                $lockTtl = 300; // 秒，锁有效期（5分钟）
-                // 1. Redis锁防止并发重复
-                $isFirst = $this->redis->set($lockKey, 1, ['NX', 'EX' => $lockTtl]);
-                if (!$isFirst) {
-                    Logger::debug("跳过频繁的update id: {$update['update_id']}");
-                    return $this->success(['status' => 'ok']);
-                }
-                $instance->handleUpdate($update);
-            } catch (\Exception $e) {
-                return $this->error($e->getMessage());
-            } finally {
-                $this->redis->del($lockKey);
-            }
+        $lockKey = "telegram:update_lock:{$update->getChat()->id}";
+        Logger::debug("update lock: $lockKey");
+        $lockTtl = 300;
+
+        // Redis 锁防重复
+        $isFirst = $this->redis->set($lockKey, 1, ['NX', 'EX' => $lockTtl]);
+        if (!$isFirst) {
+            Logger::debug("跳过频繁的update id: {$update['update_id']}");
             return $this->success(['status' => 'ok']);
+        }
+
+        \Hyperf\Coroutine\go(function () use ($lockKey, $instance, $update) {
+            try {
+                $instance->handleUpdate($update);
+            } catch (\Throwable $e) {
+                Logger::error("Webhook 异常: " . $e->getMessage());
+            } finally {
+                if ($lockKey) {
+                    $this->redis->del($lockKey);
+                }
+            }
         });
 
+        // 主协程直接返回 HTTP 响应
         return $this->success(['status' => 'ok']);
-
     }
 }
