@@ -18,6 +18,7 @@ use William\HyperfExtTelegram\Model\TelegramBot;
 use William\HyperfExtTelegram\Model\TelegramUser;
 use function Hyperf\Config\config;
 use function Hyperf\Support\make;
+use function PHPUnit\TestFixture\Generator\f;
 
 class Instance
 {
@@ -67,7 +68,7 @@ class Instance
     public function setCommands(): void
     {
         $commands = config('telegram.commands');
-        Logger::debug("set commands => ".json_encode($commands, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+        Logger::debug("set commands => " . json_encode($commands, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         $this->telegram->setMyCommands([
             'commands' => $commands
         ]);
@@ -100,7 +101,6 @@ class Instance
         Logger::debug("开始 pulling...");
         while ($this->running) {
             try {
-
                 $updates = $this->telegram->getUpdates([
                     'offset' => $offset,
                     'limit' => 100,
@@ -109,23 +109,39 @@ class Instance
                 ]);
                 foreach ($updates as $update) {
                     $offset = $update['update_id'] + 1;
-                    $this->handleUpdate($update);
+                    \Hyperf\Coroutine\go(function () use ($update) {
+                        $lockKey = "telegram:update_lock:{$update->getChat()->id}";
+                        Logger::debug("update lock: $lockKey");
+                        try {
+                            $lockTtl = 300; // 秒，锁有效期（5分钟）
+                            // 1. Redis锁防止并发重复
+                            $isFirst = $this->redis->setex($lockKey, $lockTtl, 1);
+                            if (!$isFirst) {
+                                Logger::debug("跳过频繁的update id: {$update['update_id']}");
+                                return;
+                            }
+                            $this->handleUpdate($update);
+                        } catch (RuntimeError $e) {
+                            try {
+                                if ($errorHandler = ApplicationContext::getContainer()->get(ErrorHandlerFactory::class)->get($e->getMessage())) {
+                                    $handlerClass = get_class($errorHandler);
+                                    Logger::debug("Error {$e->getMessage()} handled by {$handlerClass}.");
+                                    $errorHandler->notify($this, $update, $e->getExtra());
+                                } else {
+                                    Logger::error("未定义的错误处理器 {$e->getMessage()}");
+                                }
+                            } catch (\Exception $e) {
+                                Logger::error("pulling 异常 {$e->getMessage()}");
+                            }
+                        } catch (\Throwable $e) {
+                            Logger::info("handleUpdate未知异常:" . $e->getMessage() . $e->getTraceAsString());
+                        } finally {
+                            $this->redis->del($lockKey);
+                        }
+                    });
                 }
-            } catch (RuntimeError $e) {
-                try {
-                    if ($errorHandler = ApplicationContext::getContainer()->get(ErrorHandlerFactory::class)->get($e->getMessage())) {
-                        $handlerClass = get_class($errorHandler);
-                        Logger::debug("Error {$e->getMessage()} handled by {$handlerClass}.");
-                        $errorHandler->notify($this, $update, $e->getExtra());
-                    } else {
-                        Logger::error("未定义的错误处理器 {$e->getMessage()}");
-                    }
-                } catch (\Exception $e) {
-                    Logger::error("pulling 异常 {$e->getMessage()}");
-                }
-
             } catch (\Throwable $e) {
-                Logger::info("未知异常:" . $e->getMessage() . $e->getTraceAsString());
+                Logger::info("getUpdates未知异常:" . $e->getMessage() . $e->getTraceAsString());
             }
         }
         Logger::debug("机器人结束Pulling");
