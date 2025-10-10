@@ -109,17 +109,17 @@ class Instance
                 ]);
                 foreach ($updates as $update) {
                     $offset = $update['update_id'] + 1;
-                    \Hyperf\Coroutine\go(function () use ($update) {
-                        $lockKey = "telegram:update_lock:{$update->getChat()->id}";
-                        Logger::debug("update lock: $lockKey");
+                    $lockKey = "telegram:update_lock:{$update->getChat()->id}";
+                    Logger::debug("update lock: $lockKey");
+                    $lockTtl = 300; // 秒，锁有效期（5分钟）
+                    // 1. Redis锁防止并发重复
+                    $isFirst = $this->redis->set($lockKey, 1, ['NX', 'EX' => $lockTtl]);
+                    if (!$isFirst) {
+                        Logger::debug("跳过频繁的update id: {$update['update_id']}");
+                        continue;
+                    }
+                    \Hyperf\Coroutine\go(function () use ($update, $lockKey) {
                         try {
-                            $lockTtl = 300; // 秒，锁有效期（5分钟）
-                            // 1. Redis锁防止并发重复
-                            $isFirst = $this->redis->setex($lockKey, $lockTtl, 1);
-                            if (!$isFirst) {
-                                Logger::debug("跳过频繁的update id: {$update['update_id']}");
-                                return;
-                            }
                             $this->handleUpdate($update);
                         } catch (RuntimeError $e) {
                             try {
