@@ -2,13 +2,29 @@
 ```
 composer require wenfeng/hyperf-ext-telegram
 
-// 发布配置文件
+// 发布配置文件 在 config/autoload下生成 telegram.php 配置文件
 php bin/hyperf vendor:publish wenfeng/hyperf-ext-telegram
 
 // 数据库迁移
 php bin/hyperf migrate
 ```
 ### 使用
+#### 配置 `autoload/telegram.php`
+````php
+1、dev_token 机器人TOKEN
+2、mode  模式：pulling 主动拉取模式，webhook模式两种
+webhook模式下无需设置url，会根据机器人id和token自动注册webhook，
+默认的回调处理 Controller/WebhookController.php 可继承重写 
+3、menus
+底部菜单二维数组，一维是行，二维是按钮
+4、languages
+机器人支持的语言
+5、commands
+机器人的所有的命令，以/开头
+6、command_handlers
+命令处理类：
+
+````
 #### 消息回复写法示例
 ````php
 <?php
