@@ -3,6 +3,8 @@
 namespace William\HyperfExtTelegram;
 
 
+use William\HyperfExtTelegram\Listener\ClearStartupFileListener;
+
 class ConfigProvider
 {
     public function __invoke(): array
@@ -14,6 +16,7 @@ class ConfigProvider
             'commands' => [
             ],
             'listeners' => [
+                ClearStartupFileListener::class,
             ],
             // 合并到  config/autoload/annotations.php 文件
             'annotations' => [

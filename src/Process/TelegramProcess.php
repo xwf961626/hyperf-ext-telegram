@@ -27,14 +27,20 @@ class TelegramProcess extends AbstractProcess
     public function handle(): void
     {
         try {
+            $startupFile = '/tmp/startup.done';
             Logger::debug('当前环境：' . env('APP_ENV'));
             $this->botManager->init(1);
             $this->botManager->start();
+            Logger::debug("BotManager启动成功!");
+            file_put_contents($startupFile, date('c'));
         } catch (\Exception $e) {
             Logger::error('启动失败 ' . $e->getMessage() . $e->getTraceAsString());
-            sleep(3);
-            $this->handle();
         }
+        $this->listenEvents();
+    }
+
+    private function listenEvents()
+    {
         while (true) {
             $cmd = $this->redis->get('robot_command');
             if ($cmd) {
@@ -58,6 +64,5 @@ class TelegramProcess extends AbstractProcess
             }
             sleep(1);
         }
-
     }
 }
