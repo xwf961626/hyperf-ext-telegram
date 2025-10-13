@@ -15,6 +15,8 @@ use function Hyperf\Support\env;
 
 class TelegramProcess extends AbstractProcess
 {
+    public string $name = 'telegram-process';
+
     protected BotManager $botManager;
     protected Redis $redis;
     public function __construct(ContainerInterface $container, RedisFactory $redisFactory)
@@ -27,7 +29,7 @@ class TelegramProcess extends AbstractProcess
     public function handle(): void
     {
         try {
-            $startupFile = '/tmp/startup.done';
+            $startupFile = "/tmp/startup-telegram.done";
             Logger::debug('当前环境：' . env('APP_ENV'));
             $this->botManager->init(1);
             $this->botManager->start();

@@ -20,8 +20,8 @@ class ClearStartupFileListener implements ListenerInterface
 
     public function process(object $event): void
     {
-        Logger::debug("服务器启动之前删除 /tmp/startup.done");
-        $startupFile = '/tmp/startup.done';
+        Logger::debug("服务器启动之前删除 /tmp/startup-telegram.done");
+        $startupFile = '/tmp/startup-telegram.done';
         if (file_exists($startupFile)) {
             unlink($startupFile);
         }

@@ -150,7 +150,7 @@ class Instance
     public function sync()
     {
         $me = $this->telegram->getMe();
-        Logger::info("bot getMe => " . json_encode($me));
+        Logger::info("bot getMe => " . json_encode($me, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
         TelegramBot::where(['token' => $this->token])->update(['username' => $me->username, 'nickname' => $me->firstName]);
         $key = 'bot:' . $this->token;
         $this->redis->del($key);
