@@ -10,6 +10,7 @@ use Swoole\Table;
 use William\HyperfExtTelegram\Core\BotManager;
 use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
+use William\HyperfExtTelegram\Model\TelegramUser;
 use function Hyperf\Config\config;
 use Hyperf\Swagger\Annotation as SA;
 
@@ -35,10 +36,12 @@ class AdminController extends BaseController
 
     public static function addRoutes(): void
     {
-        Router::post('/admin/telegram/bots', [self::class, 'addTelegramBot']);
-        Router::delete('/admin/telegram/bots/{id}', [self::class, 'deleteTelegramBot']);
-        Router::put('/admin/telegram/bots/{id}', [self::class, 'editTelegramBot']);
-        Router::get('/admin/telegram/bots', [self::class, 'getTelegramBots']);
+        Router::post('telegram/bots', [self::class, 'addTelegramBot']);
+        Router::delete('telegram/bots/{id}', [self::class, 'deleteTelegramBot']);
+        Router::put('telegram/bots/{id}', [self::class, 'editTelegramBot']);
+        Router::get('telegram/bots', [self::class, 'getTelegramBots']);
+
+        Router::get('telegram/users', [self::class, 'getTelegramUsers']);
     }
 
     public function addTelegramBot(Request $request)
@@ -68,6 +71,8 @@ class AdminController extends BaseController
             ->paginate($request->query('limit', 15));
         return $this->success($results);
     }
+
+
 
     public function editTelegramBot(int $id, Request $request)
     {
