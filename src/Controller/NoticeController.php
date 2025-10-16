@@ -71,7 +71,7 @@ class NoticeController extends BaseController
         }
         $to_all = $this->request->input('to_all', 0);
         $receivers = $this->request->input('receivers', []);
-        if (!empty($receivers) && !$to_all) {
+        if (empty($receivers) && !$to_all) {
             return $this->error('接收者必填');
         }
         try {
