@@ -27,7 +27,7 @@ class NoticeController extends BaseController
         Router::put('telegram/notices/{id}', [self::class, 'edit']);
         Router::get('telegram/notices', [self::class, 'getList']);
 
-        Router::get('telegram/notices/{id}/post', [self::class, 'post']);
+        Router::post('telegram/notices/{id}/post', [self::class, 'post']);
     }
 
     public function getList(Request $request)
