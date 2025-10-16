@@ -3,6 +3,8 @@
 namespace William\HyperfExtTelegram\Controller;
 
 use Hyperf\AsyncQueue\Driver\DriverFactory;
+use Hyperf\HttpServer\Contract\RequestInterface;
+use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\HttpServer\Request;
 use Hyperf\HttpServer\Router\Router;
 use William\HyperfExtTelegram\Job\PostNoticeJob;
@@ -17,7 +19,7 @@ class NoticeController extends BaseController
     public function __construct(DriverFactory $driverFactory)
     {
         parent::__construct();
-        $this->queue = $driverFactory->get('default');
+        $this->queue = $driverFactory->get('fast');
     }
 
     public static function registerRoutes()
@@ -28,6 +30,8 @@ class NoticeController extends BaseController
         Router::get('telegram/notices', [self::class, 'getList']);
 
         Router::post('telegram/notices/{id}/post', [self::class, 'post']);
+
+        Router::post('telegram/upload', [self::class, 'post']);
     }
 
     public function getList(Request $request)
@@ -111,5 +115,56 @@ class NoticeController extends BaseController
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
+    }
+
+    public function upload(RequestInterface $request, ResponseInterface $response)
+    {
+        $uploadedFile = $request->getUploadedFiles()['file'] ?? null;
+
+        if (!$uploadedFile) {
+            return $response->json([
+                'code' => 400,
+                'message' => 'No file uploaded.',
+            ]);
+        }
+
+        // 检查上传是否成功
+        if ($uploadedFile->getError() !== UPLOAD_ERR_OK) {
+            return $response->json([
+                'code' => 400,
+                'message' => 'File upload error.',
+            ]);
+        }
+
+        $uploadDir = BASE_PATH . '/storage/bot';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        // 原始文件名和扩展名
+        $originalName = $uploadedFile->getClientFilename();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+
+        // 使用 uniqid() 生成一个唯一的随机文件名
+        $newFileName = uniqid('file_', true) . '.' . $extension;
+        $filePath = $uploadDir . '/' . $newFileName;
+
+        // 移动文件
+        $uploadedFile->moveTo($filePath);
+
+        // 获取文件类型
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($filePath);
+
+        return $response->json([
+            'code' => 200,
+            'message' => '上传成功',
+            'data' => [
+                'name' => $originalName,
+                'path' => 'storage/bot/' . $newFileName, // 相对路径
+                'absolute_path' => $filePath,                // 绝对路径
+                'mime' => $mimeType,                         // 文件类型
+            ],
+        ]);
     }
 }

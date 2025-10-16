@@ -11,6 +11,7 @@ return [
         'telegram token is invalid' => '机器人Token无效！',
         'telegram token not found' => '机器人未找到！',
     ],
+    'store_dir' => env('TELEGRAM_STORE_DIR', BASE_PATH . '/storage/bot'),
     'commands' => [
         [
             'command' => 'start',

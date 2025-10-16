@@ -58,6 +58,9 @@ class MessageBuilder
     public function messageType($type): self
     {
         $this->messageType = $type;
+        if (ucfirst($this->messageType) !== 'Message') {
+            $this->textField = 'caption';
+        }
         return $this;
     }
 
@@ -72,7 +75,7 @@ class MessageBuilder
      */
     public function text(string $text): self
     {
-        $this->message['text'] = $text;
+        $this->message[$this->textField] = $text;
         return $this;
     }
 
@@ -114,6 +117,15 @@ class MessageBuilder
         } else {
             $this->message['reply_markup']['inline_keyboard'][] = [];
         }
+        return $this;
+    }
+
+    public function inlineKeyboard($inlineKeyboard): self
+    {
+        if(!isset($this->message['reply_markup'])) {
+            $this->message['reply_markup'] = [];
+        }
+        $this->message['reply_markup']['inline_keyboard'] = $inlineKeyboard;
         return $this;
     }
 

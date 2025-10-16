@@ -11,7 +11,9 @@ use Hyperf\DbConnection\Model\Model;
  * @property \Carbon\Carbon $created_at 
  * @property \Carbon\Carbon $updated_at 
  * @property string $title 
- * @property string $content 
+ * @property string $attach
+ * @property array $buttons
+ * @property string $content
  */
 class TelegramNotice extends Model
 {
@@ -26,10 +28,12 @@ class TelegramNotice extends Model
     protected array $fillable = [
         'title',
         'content',
+        'attach',
+        'buttons'
     ];
 
     /**
      * The attributes that should be cast to native types.
      */
-    protected array $casts = ['id' => 'integer', 'created_at' => 'datetime', 'updated_at' => 'datetime'];
+    protected array $casts = ['id' => 'integer', 'buttons' => 'json', 'created_at' => 'datetime', 'updated_at' => 'datetime'];
 }

@@ -6,7 +6,8 @@
     "php": ">=8.3",
     "ext-curl": "*",
     "hyperf/redis": "^3.1",
-    "ext-redis": "*"
+    "ext-redis": "*",
+    "ext-fileinfo": "*"
   },
   "require-dev": {
     "hyperf/cache": "~3.1.0",
