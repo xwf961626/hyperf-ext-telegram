@@ -74,12 +74,13 @@ class NoticeController extends BaseController
             return $this->error('公告未找到');
         }
         $to_all = $this->request->input('to_all', 0);
+        $bot_ids = $this->request->input('bot_ids', []);
         $receivers = $this->request->input('receivers', []);
         if (empty($receivers) && !$to_all) {
             return $this->error('接收者必填');
         }
         try {
-            $post = TelegramNoticePost::create(compact('notice_id', 'to_all', 'receivers'));
+            $post = TelegramNoticePost::create(compact('notice_id', 'to_all', 'bot_ids', 'receivers'));
             $this->queue->push(new PostNoticeJob($post->id));
             return $this->success($post);
         } catch (\Exception $e) {

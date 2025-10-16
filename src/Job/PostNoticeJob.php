@@ -30,7 +30,14 @@ class PostNoticeJob extends Job
                     if ($post->to_all) {
                         $receivers = TelegramUser::get();
                     } else {
-                        $receivers = TelegramUser::whereIn('id', $post->receivers)->get();
+                        $query = TelegramUser::query();
+                        if (!empty($post->bot_ids)) {
+                            $query->whereIn('bot_ids', $post->bot_ids);
+                        }
+                        if (!empty($post->receivers)) {
+                            $query->whereIn('receivers', $post->receivers);
+                        }
+                        $receivers = $query->get();
                     }
                     if (!empty($receivers)) {
                         if ($notice->attach) {
@@ -87,6 +94,7 @@ class PostNoticeJob extends Job
             } catch (\Exception $e) {
                 Logger::error("发送公告失败：{$e->getMessage()}{$e->getTraceAsString()}");
                 $post->status = -1;
+                $post->fail_reason = $e->getMessage();
                 $post->save();
             }
         }
