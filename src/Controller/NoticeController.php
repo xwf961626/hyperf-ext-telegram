@@ -4,10 +4,11 @@ namespace William\HyperfExtTelegram\Controller;
 
 use Hyperf\AsyncQueue\Driver\DriverFactory;
 use Hyperf\HttpServer\Request;
+use Hyperf\HttpServer\Router\Router;
 use William\HyperfExtTelegram\Job\PostNoticeJob;
 use William\HyperfExtTelegram\Model\TelegramNotice;
 use William\HyperfExtTelegram\Model\TelegramNoticePost;
-use William\HyperfExtTelegram\Model\TelegramUser;
+
 
 class NoticeController extends BaseController
 {
@@ -15,7 +16,18 @@ class NoticeController extends BaseController
 
     public function __construct(DriverFactory $driverFactory)
     {
+        parent::__construct();
         $this->queue = $driverFactory->get('default');
+    }
+
+    public static function registerRoutes()
+    {
+        Router::post('telegram/notices', [self::class, 'create']);
+        Router::delete('telegram/notices/{id}', [self::class, 'delete']);
+        Router::put('telegram/notices/{id}', [self::class, 'edit']);
+        Router::get('telegram/notices', [self::class, 'getList']);
+
+        Router::get('telegram/notices/{id}/post', [self::class, 'post']);
     }
 
     public function getList(Request $request)
@@ -45,13 +57,17 @@ class NoticeController extends BaseController
         }
     }
 
-    public function post()
+    public function post($id)
     {
         if (TelegramNoticePost::where('status', 'pending')->exists()) {
             return $this->error('有发送广告任务正在进行中，暂时不能发送');
         }
-        if (!$notice_id = $this->request->input('notice_id')) {
-            return $this->error('标题必填');
+        if (!$notice_id = $id) {
+            return $this->error('公告ID必填');
+        }
+        $notice = TelegramNotice::find($id);
+        if (!$notice) {
+            return $this->error('公告未找到');
         }
         $to_all = $this->request->input('to_all', 0);
         $receivers = $this->request->input('receivers', []);
@@ -59,9 +75,9 @@ class NoticeController extends BaseController
             return $this->error('接收者必填');
         }
         try {
-            $bot = TelegramNoticePost::create(compact('notice_id', 'to_all', 'receivers'));
-            $this->queue->push(new PostNoticeJob($bot->id));
-            return $this->success($bot);
+            $post = TelegramNoticePost::create(compact('notice_id', 'to_all', 'receivers'));
+            $this->queue->push(new PostNoticeJob($post->id));
+            return $this->success($post);
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
