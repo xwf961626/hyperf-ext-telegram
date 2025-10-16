@@ -21,7 +21,7 @@ class UsersController extends BaseController
                 ->orWhere('nickname', 'like', '%' . $keywords . '%');
         }
         if ($botIds = $request->query('bot_ids')) {
-            $query = $query->whereIn('bot_id', $botIds);
+            $query = $query->whereIn('bot_id', explode(',', $botIds));
         }
         $results = $query->orderBy('id', 'desc')
             ->paginate($request->query('limit', 15));
