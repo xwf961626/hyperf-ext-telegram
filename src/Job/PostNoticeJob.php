@@ -32,7 +32,7 @@ class PostNoticeJob extends Job
                     } else {
                         $query = TelegramUser::query();
                         if (!empty($post->bot_ids)) {
-                            $query->whereIn('bot_ids', $post->bot_ids);
+                            $query->whereIn('bot_id', $post->bot_ids);
                         }
                         if (!empty($post->receivers)) {
                             $query->whereIn('id', $post->receivers);
