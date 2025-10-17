@@ -35,7 +35,7 @@ class PostNoticeJob extends Job
                             $query->whereIn('bot_ids', $post->bot_ids);
                         }
                         if (!empty($post->receivers)) {
-                            $query->whereIn('receivers', $post->receivers);
+                            $query->whereIn('id', $post->receivers);
                         }
                         $receivers = $query->get();
                     }
