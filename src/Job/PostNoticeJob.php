@@ -74,7 +74,7 @@ class PostNoticeJob extends Job
                             $bot = $botMap[$receiver->bot_id];
                             if ($bot) {
                                 $telegram = new Api($bot->token);
-                                $msg = MessageBuilder::newMessage($receiver->user_id);
+                                $msg = MessageBuilder::newMessage($receiver->user_id, $bot->id);
                                 if ($msgType !== 'message') {
                                     $msg->media($baseName, $msgType, 7200);
                                 }
