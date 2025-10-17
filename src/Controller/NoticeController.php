@@ -76,7 +76,7 @@ class NoticeController extends BaseController
         $to_all = $this->request->input('to_all', 0);
         $bot_ids = $this->request->input('bot_ids', []);
         $receivers = $this->request->input('receivers', []);
-        if (empty($receivers) && !$to_all) {
+        if (empty($receivers) && !$to_all && empty($bot_ids)) {
             return $this->error('接收者必填');
         }
         try {
