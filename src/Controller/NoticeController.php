@@ -63,9 +63,9 @@ class NoticeController extends BaseController
 
     public function post($id)
     {
-        if (TelegramNoticePost::where('status', 'pending')->exists()) {
-            return $this->error('有发送广告任务正在进行中，暂时不能发送');
-        }
+//        if (TelegramNoticePost::where('status', 'pending')->exists()) {
+//            return $this->error('有发送广告任务正在进行中，暂时不能发送');
+//        }
         if (!$notice_id = $id) {
             return $this->error('公告ID必填');
         }
