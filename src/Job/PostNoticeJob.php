@@ -40,25 +40,24 @@ class PostNoticeJob extends Job
                         $receivers = $query->get();
                     }
                     if (!empty($receivers)) {
+                        $msgType = "message";
                         if ($notice->attach) {
                             $relativePath = $notice->attach;
                             $absolutePath = realpath($relativePath);
                             // 判断文件是否存在
                             if ($absolutePath === false) {
-                                Logger::error("发送公告失败，文件不存在：$absolutePath");
-                                return;
+                                Logger::debug("发送公告失败，文件不存在：$absolutePath");
+                            } else {
+                                $finfo = new finfo(FILEINFO_MIME_TYPE); // 获取 MIME 类型
+                                $fileType = $finfo->file($absolutePath);
+                                // 输出文件类型
+                                Logger::debug("文件类型: " . $fileType);
+                                // 如果你想按扩展名判断：
+                                $fileExtension = pathinfo($absolutePath, PATHINFO_EXTENSION);
+                                $baseName = pathinfo($absolutePath, PATHINFO_BASENAME);
+                                Logger::debug("文件扩展名: " . $fileExtension);
+                                $msgType = $this->getMessageType($fileType, $fileExtension);
                             }
-                            $finfo = new finfo(FILEINFO_MIME_TYPE); // 获取 MIME 类型
-                            $fileType = $finfo->file($absolutePath);
-                            // 输出文件类型
-                            Logger::debug("文件类型: " . $fileType);
-                            // 如果你想按扩展名判断：
-                            $fileExtension = pathinfo($absolutePath, PATHINFO_EXTENSION);
-                            $baseName = pathinfo($absolutePath, PATHINFO_BASENAME);
-                            Logger::debug("文件扩展名: " . $fileExtension);
-                            $msgType = $this->getMessageType($fileType, $fileExtension);
-                        } else {
-                            $msgType = "message";
                         }
 
                         $inlineKeyboard = null;
