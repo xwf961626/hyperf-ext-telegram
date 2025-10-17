@@ -54,7 +54,7 @@ class NoticeController extends BaseController
             return $this->error('内容必填');
         }
         try {
-            $bot = TelegramNotice::create(compact('title', 'content'));
+            $bot = TelegramNotice::create($this->request->all());
             return $this->success($bot);
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
