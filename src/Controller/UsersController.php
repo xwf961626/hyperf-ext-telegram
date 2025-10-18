@@ -16,9 +16,14 @@ class UsersController extends BaseController
     public function getTelegramUsers(Request $request)
     {
         $query = TelegramUser::with(['bot']);
-        if ($keywords = $request->query('keywords')) {
-            $query = $query->where('username', 'like', '%' . $keywords . '%')
-                ->orWhere('nickname', 'like', '%' . $keywords . '%');
+        if ($userId = $request->query('user_id')) {
+            $query = $query->where('user_id', $userId);
+        }
+        if ($username = $request->query('username')) {
+            $query = $query->where('username', 'like', '%' . $username . '%');
+        }
+        if ($nickname = $request->query('nickname')) {
+            $query = $query->where('nickname', 'like', '%' . $nickname . '%');
         }
         if ($botIds = $request->query('bot_ids')) {
             $query = $query->whereIn('bot_id', explode(',', $botIds));
