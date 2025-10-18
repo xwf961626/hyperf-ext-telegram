@@ -12,6 +12,20 @@ class UsersController extends BaseController
     public static function registerRoutes()
     {
         Router::get('telegram/users', [self::class, 'getTelegramUsers']);
+        Router::delete('telegram/users/{ids}', [self::class, 'deleteTelegramUsers']);
+    }
+
+    public function deleteTelegramUsers(string $ids)
+    {
+        try {
+            $ids = explode(',', $ids);
+            if (!empty($ids)) {
+                TelegramUser::whereIn('id', $ids)->delete();
+            }
+            return $this->success($ids);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
     }
 
     public function getTelegramUsers(Request $request)

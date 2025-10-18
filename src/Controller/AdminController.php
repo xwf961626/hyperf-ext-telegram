@@ -73,7 +73,6 @@ class AdminController extends BaseController
     }
 
 
-
     public function editTelegramBot(int $id, Request $request)
     {
         $bot = TelegramBot::find($id);
@@ -109,8 +108,10 @@ class AdminController extends BaseController
             return $this->error(config('telegram.validate_messages')['telegram token not found']);
         }
         try {
-            $bot->delete();
-            $this->setCommand('stop', $bot->id);
+            if ($bot->delete()) {
+                $this->setCommand('stop', $bot->id);
+                TelegramUser::where('bot_id', $bot->id)->delete();
+            }
         } catch (\Exception $e) {
             Logger::error($e->getMessage());
             return $this->error($e->getMessage());
