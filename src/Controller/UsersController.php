@@ -4,6 +4,7 @@ namespace William\HyperfExtTelegram\Controller;
 
 use Hyperf\HttpServer\Request;
 use Hyperf\HttpServer\Router\Router;
+use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramUser;
 
 class UsersController extends BaseController
@@ -19,6 +20,7 @@ class UsersController extends BaseController
         if ($userId = $request->query('user_id')) {
             $query = $query->where('user_id', $userId);
         }
+        Logger::debug("搜索用户：".json_encode($request->query(), JSON_UNESCAPED_UNICODE));
         if ($username = $request->query('username')) {
             $query = $query->where('username', 'like', '%' . $username . '%');
         }
