@@ -10,6 +10,7 @@ use Hyperf\HttpServer\Router\Router;
 use William\HyperfExtTelegram\Job\PostNoticeJob;
 use William\HyperfExtTelegram\Model\TelegramNotice;
 use William\HyperfExtTelegram\Model\TelegramNoticePost;
+use function Hyperf\Config\config;
 
 
 class NoticeController extends BaseController
@@ -137,7 +138,7 @@ class NoticeController extends BaseController
             ]);
         }
 
-        $uploadDir = BASE_PATH . '/storage/bot';
+        $uploadDir = BASE_PATH . '/'.config('telegram.store_dir');
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
@@ -162,7 +163,7 @@ class NoticeController extends BaseController
             'message' => '上传成功',
             'data' => [
                 'name' => $originalName,
-                'path' => 'storage/bot/' . $newFileName, // 相对路径
+                'path' => config('telegram.store_dir') . $newFileName, // 相对路径
                 'absolute_path' => $filePath,                // 绝对路径
                 'mime' => $mimeType,                         // 文件类型
             ],

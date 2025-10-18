@@ -13,6 +13,7 @@ use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\FileUpload\InputFile;
 use Telegram\Bot\Objects\Message;
+use function Hyperf\Config\config;
 use function Hyperf\Support\make;
 use function Hyperf\Translation\trans;
 
@@ -122,7 +123,7 @@ class MessageBuilder
 
     public function inlineKeyboard($inlineKeyboard): self
     {
-        if(!isset($this->message['reply_markup'])) {
+        if (!isset($this->message['reply_markup'])) {
             $this->message['reply_markup'] = [];
         }
         $this->message['reply_markup']['inline_keyboard'] = $inlineKeyboard;
@@ -316,7 +317,7 @@ class MessageBuilder
         $redis = make(Cache::class);
         $fileId = $redis->get(self::FILE_KEY . $this->botId . ':' . $filename);
         if (!$fileId) {
-            $videoPath = BASE_PATH . '/storage/bot/' . $filename;
+            $videoPath = BASE_PATH . '/' . config('telegram.store_dir') . '/' . $filename;
             Logger::debug("媒体FileID缓冲不存在，重新上传");
             $fileId = InputFile::create($videoPath);
             $this->shouldSaveFileId = $filename;
