@@ -150,7 +150,7 @@ class Instance
     public function sync()
     {
         $me = $this->telegram->getMe();
-        Logger::info("bot getMe => " . json_encode($me, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+        Logger::info("bot getMe => " . json_encode($me, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         TelegramBot::where(['token' => $this->token])->update(['username' => $me->username, 'nickname' => $me->firstName]);
         $key = 'bot:' . $this->token;
         $this->redis->del($key);
@@ -618,7 +618,11 @@ class Instance
             'nickname' => $this->getNickname($update),
         ];
         $getAvatarHandle = config('telegram.get_avatar');
-        $userInfo['avatar'] = $getAvatarHandle ? $getAvatarHandle($update) : $this->getAvatar($update);
+        $avatarCache = $this->cache->get('avatars:' . $chatId);
+        if (!$avatarCache) {
+            $userInfo['avatar'] = $getAvatarHandle ? $getAvatarHandle($update) : $this->getAvatar($update);
+            $this->cache->set('avatars:' . $chatId, $userInfo['avatar'], 600);
+        }
         $user = TelegramUser::updateOrCreate([
             'bot_id' => $botId,
             'user_id' => $chatId,
@@ -644,7 +648,7 @@ class Instance
                 $filePath = $file->file_path;
                 $avatarUrl = "https://api.telegram.org/file/bot" . $this->telegram->getAccessToken() . "/" . $filePath;
                 Logger::debug("用户头像地址: " . $avatarUrl);
-                return $avatarUrl;
+                return $this->saveAvatar($avatarUrl, $userId);
             } else {
                 Logger::debug("用户没有头像");
             }
@@ -652,6 +656,35 @@ class Instance
             Logger::error("获取头像异常：{$e->getMessage()}");
         }
         return "";
+    }
+
+    private function saveAvatar($avatarUrl, $userId)
+    {
+        // 保存路径（确保目录存在）
+        $saveDir = BASE_PATH . '/' . config('telegram.store_dir') . '/avatars/';
+        $savePath = $saveDir . $userId . '.jpg';
+
+// 创建目录（如果不存在）
+        if (!is_dir($saveDir)) {
+            mkdir($saveDir, 0777, true);
+        }
+
+// 下载文件
+        $avatarData = file_get_contents($avatarUrl);
+
+        if ($avatarData === false) {
+            throw new \Exception("Failed to download avatar from Telegram.");
+        }
+
+// 保存文件
+        $fileSaved = file_put_contents($savePath, $avatarData);
+
+        if ($fileSaved === false) {
+            throw new \Exception("Failed to save avatar to local path: {$savePath}");
+        }
+
+        Logger::debug("Avatar saved successfully: {$savePath}");
+        return config('telegram.store_dir') . '/avatars/' . $userId . '.jpg';
     }
 
     public function isRunning(): bool
