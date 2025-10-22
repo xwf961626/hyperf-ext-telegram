@@ -313,10 +313,7 @@ class Instance
                 $this->handleState($update, $state, $text);
             } else {
                 Logger::info('handle Text: ' . $text);
-                $this->telegram->sendMessage([
-                    'chat_id' => $update->getMessage()->getChat()->getId(),
-                    'text' => "你发送了：$text",
-                ]);
+                $this->handleCommonText($update, $text);
             }
         }
     }
@@ -702,6 +699,13 @@ class Instance
                 Logger::debug("删除webhook");
                 $this->telegram->deleteWebhook();
             }
+        }
+    }
+
+    private function handleCommonText(Update $update, $text)
+    {
+        if ($handler = config('telegram.common_text_handler')) {
+            $handler($this, $update, $text);
         }
     }
 }
