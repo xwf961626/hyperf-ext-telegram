@@ -5,9 +5,10 @@
   "require": {
     "php": ">=8.3",
     "ext-curl": "*",
-    "hyperf/redis": "^3.1",
+    "ext-fileinfo": "*",
     "ext-redis": "*",
-    "ext-fileinfo": "*"
+    "hyperf/async-queue": "^3.1",
+    "hyperf/redis": "^3.1"
   },
   "require-dev": {
     "hyperf/cache": "~3.1.0",
