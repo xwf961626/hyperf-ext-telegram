@@ -2,6 +2,8 @@
 
 namespace William\HyperfExtTelegram\Trait;
 
+use William\HyperfExtTelegram\Core\StateEntity;
+
 trait StateTrait
 {
     protected function setState(string $key, mixed $value = '', int $expiresIn = 20): void
@@ -20,5 +22,10 @@ trait StateTrait
     protected function endState(): void
     {
         $this->telegramInstance->endState($this->telegramUpdate);
+    }
+
+    protected function getState(int $chatId): ?StateEntity
+    {
+        return $this->telegramInstance->getState($chatId);
     }
 }
