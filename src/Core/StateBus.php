@@ -16,9 +16,11 @@ class StateBus
     {
         $this->redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
         $this->key = self::STATE_KEY_PREFIX . $chatId;
-        $this->redis->hSet($this->key, "name", $this->name);
-        if ($ttl > 0) {
-            $this->redis->expire($this->key, $this->ttl);
+        if (!$this->redis->hGet($this->key, "name")) {
+            $this->redis->hSet($this->key, "name", $this->name);
+            if ($ttl > 0) {
+                $this->redis->expire($this->key, $this->ttl);
+            }
         }
     }
 

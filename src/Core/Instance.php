@@ -530,6 +530,11 @@ class Instance
 
     public function getState(int $chatId): ?StateBus
     {
+        if (!isset($this->states[$chatId])) {
+            if ($this->redis->exists(StateBus::STATE_KEY_PREFIX . $chatId)) {
+                $this->states[$chatId] = new StateBus($chatId);
+            }
+        }
         return $this->states[$chatId] ?? null;
     }
 
