@@ -41,6 +41,7 @@ class Instance
     private $running = true;
     private $mode = 'pulling';
     protected Cache $cache;
+    private $states = [];
 
     public function __construct(TelegramBot $bot)
     {
@@ -514,30 +515,25 @@ class Instance
         $this->keyboards = $keyboards;
     }
 
-    public function setState(int $chatId, string $key, mixed $value = null, int $expiresIn = 0): void
+    public function setState(int $chatId, string $name, string $value = '', int $expiresIn = 0): void
     {
-        $redisKey = "trc20:state:{$this->botID}:$chatId";
-        $this->redis->set($redisKey, json_encode(['key' => $key, 'value' => $value]));
-        $this->redis->expire($redisKey, $expiresIn);
+        $state = new StateBus($chatId, $name, $expiresIn);
+        $state->add($name, $value);
+        $this->states[$chatId] = $state;
     }
 
-    public function getState(int $chatId): ?StateEntity
+    public function getState(int $chatId): ?StateBus
     {
-        $res = $this->redis->get("trc20:state:{$this->botID}:$chatId");
-        if ($res) {
-            $arr = json_decode($res, true);
-            return StateEntity::of($arr);
-        }
-        return null;
+        return $this->states[$chatId] ?? null;
     }
 
-    /**
-     * @throws \RedisException
-     */
     public function endState(Update $update): void
     {
         $chatId = $this->getChatId($update);
-        $this->redis->del("trc20:state:{$this->botID}:$chatId");
+        if ($state = $this->getState($chatId)) {
+            $state->end();
+            unset($this->states[$chatId]);
+        }
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace William\HyperfExtTelegram\Trait;
 
+use William\HyperfExtTelegram\Core\StateBus;
 use William\HyperfExtTelegram\Core\StateEntity;
 
 trait StateTrait
@@ -24,7 +25,7 @@ trait StateTrait
         $this->telegramInstance->endState($this->telegramUpdate);
     }
 
-    protected function getState(int $chatId): ?StateEntity
+    protected function getState(int $chatId): ?StateBus
     {
         return $this->telegramInstance->getState($chatId);
     }
