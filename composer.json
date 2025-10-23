@@ -3,6 +3,7 @@
   "description": "A telegram reusable Hyperf module template with JWT and routes",
   "type": "library",
   "license": "MIT",
+  "version": "3.2",
   "require": {
     "php": ">=8.3",
     "ext-curl": "*",
