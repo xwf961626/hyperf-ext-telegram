@@ -3,17 +3,24 @@
 namespace William\HyperfExtTelegram\Trait;
 
 use William\HyperfExtTelegram\Core\StateBus;
-use William\HyperfExtTelegram\Core\StateEntity;
 
 trait StateTrait
 {
-    protected function setState(string $key, mixed $value = '', int $expiresIn = 20): void
+    protected function startState(string $key, int $ttl): StateBus
+    {
+        return $this->telegramInstance->startState(
+            $this->telegramInstance->getChatId($this->telegramUpdate),
+            $key,
+            $ttl,
+        );
+    }
+
+    protected function setState(string $key, mixed $value = ''): void
     {
         $this->telegramInstance->setState(
             $this->telegramInstance->getChatId($this->telegramUpdate),
             $key,
             $value,
-            $expiresIn,
         );
     }
 

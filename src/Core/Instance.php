@@ -515,9 +515,16 @@ class Instance
         $this->keyboards = $keyboards;
     }
 
-    public function setState(int $chatId, string $name, string $value = '', int $expiresIn = 0): void
+    public function startState(int $chatId, string $name, int $ttl = 0): StateBus
     {
-        $state = new StateBus($chatId, $name, $expiresIn);
+        $state = new StateBus($chatId, $name, $ttl);
+        $this->states[$chatId] = $state;
+        return $state;
+    }
+
+    public function setState(int $chatId, string $name, string $value = ''): void
+    {
+        $state = $this->getState($chatId);
         $state->add($name, $value);
         $this->states[$chatId] = $state;
     }
