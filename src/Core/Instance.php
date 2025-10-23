@@ -18,7 +18,6 @@ use William\HyperfExtTelegram\Model\TelegramBot;
 use William\HyperfExtTelegram\Model\TelegramUser;
 use function Hyperf\Config\config;
 use function Hyperf\Support\make;
-use function PHPUnit\TestFixture\Generator\f;
 
 class Instance
 {
@@ -551,10 +550,10 @@ class Instance
      * @param $text
      * @return void
      */
-    private function handleState(Update $update, StateEntity $state, $text): void
+    private function handleState(Update $update, StateBus $state, $text): void
     {
         Logger::info('Handle State ' . json_encode($state));
-        $handler = AnnotationRegistry::getStateHandler($state->key);
+        $handler = AnnotationRegistry::getStateHandler($state->name());
         if ($handler) {
             /** @var StateHandlerInterface $instance */
             [$instance, $method] = $handler;
@@ -562,7 +561,7 @@ class Instance
             Logger::info("Found State Handler $class@$method");
             call_user_func([$instance, $method], $this, $update, $state, $text);
         } else {
-            Logger::info("未知命令：{$state->key}");
+            Logger::info("未知命令：{$state->name()}");
         }
     }
 
