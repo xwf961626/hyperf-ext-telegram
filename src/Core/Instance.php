@@ -553,7 +553,7 @@ class Instance
     private function handleState(Update $update, StateBus $state, $text): void
     {
         Logger::info('Handle State ' . json_encode($state));
-        $handler = AnnotationRegistry::getStateHandler($state->name());
+        $handler = AnnotationRegistry::getStateHandler($state->get("name"));
         if ($handler) {
             /** @var StateHandlerInterface $instance */
             [$instance, $method] = $handler;
@@ -561,7 +561,7 @@ class Instance
             Logger::info("Found State Handler $class@$method");
             call_user_func([$instance, $method], $this, $update, $state, $text);
         } else {
-            Logger::info("未知命令：{$state->name()}");
+            Logger::info("未知命令：{$state->get("name")}");
         }
     }
 
