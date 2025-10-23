@@ -12,7 +12,7 @@ class StateBus
     const STATE_KEY_PREFIX = "states:";
     private string $key;
 
-    public function __construct(protected $chatId, protected int $ttl = 0, protected string $name = "default")
+    public function __construct(protected $chatId, protected string $name = "default", protected int $ttl = 0)
     {
         $this->redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
         $this->key = self::STATE_KEY_PREFIX . $chatId;
