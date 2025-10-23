@@ -11,11 +11,11 @@ abstract class AbstractStateHandler implements StateHandlerInterface
     use ReplyTrait, StateTrait;
 
     protected Instance $telegramInstance;
-    protected StateEntity $state;
+    protected StateBus $state;
     protected Update $telegramUpdate;
     protected string $text;
 
-    public function handle(Instance $instance, Update $update, StateEntity $state, string $text): void
+    public function handle(Instance $instance, Update $update, StateBus $state, string $text): void
     {
         $this->telegramInstance = $instance;
         $this->state = $state;
