@@ -13,9 +13,11 @@ use Hyperf\DbConnection\Model\Model;
  * @property string $nickname
  * @property string $language
  * @property int $expired_time
+ * @property int $telegram_user_id
  * @property string $expired_at
  * @property array $admins
  * @property string $status
+ * @property array $settings
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  */
@@ -37,10 +39,21 @@ class TelegramBot extends Model
         'language',
         'expired_time',
         'expired_at',
+        'telegram_user_id',
+        'settings',
     ];
 
     /**
      * The attributes that should be cast to native types.
      */
-    protected array $casts = ['id' => 'integer', 'expired_time' => 'integer', 'created_at' => 'datetime', 'updated_at' => 'datetime'];
+    protected array $casts = [
+        'id' => 'integer',
+        'telegram_user_id' => 'integer',
+        'settings' => 'json',
+        'expired_time' => 'integer', 'created_at' => 'datetime', 'updated_at' => 'datetime'];
+
+    public function user(): \Hyperf\Database\Model\Relations\BelongsTo
+    {
+        return $this->belongsTo(TelegramUser::class);
+    }
 }

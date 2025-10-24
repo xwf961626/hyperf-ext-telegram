@@ -58,4 +58,9 @@ class TelegramUser extends Model
     {
         return $this->belongsTo(TelegramBot::class);
     }
+
+    public function bots()
+    {
+        return $this->hasMany(TelegramBot::class);
+    }
 }
