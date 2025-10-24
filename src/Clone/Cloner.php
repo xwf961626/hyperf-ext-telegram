@@ -7,6 +7,7 @@ use Telegram\Bot\Objects\Update;
 use William\HyperfExtTelegram\Core\BotManager;
 use William\HyperfExtTelegram\Core\Instance;
 use William\HyperfExtTelegram\Core\MessageBuilder;
+use William\HyperfExtTelegram\Core\RuntimeError;
 use William\HyperfExtTelegram\Events;
 use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
@@ -33,12 +34,11 @@ class Cloner implements CloneInterface
         return [];
     }
 
-    public function handleTokenInput(Instance $instance, Update $update, string $token): void
+    public function handleTokenInput(Instance $instance, Update $update, string $token): TelegramBot
     {
         Logger::debug("检查token是否已存在:$token");
         if (TelegramBot::where('token', $token)->exists()) {
-            $this->onError($instance, $update, "Token already exists");
-            return;
+            throw new RuntimeError("Token already exists");
         }
 
         $user = $instance->getCurrentUser();
@@ -53,8 +53,7 @@ class Cloner implements CloneInterface
             $tel->nickname = $me->first . ' ' . $me->last;
             $tel->language = $me->languageCode;
         } catch (\Exception $e) {
-            $this->onError($instance, $update, "Invalid token");
-            return;
+            throw new RuntimeError("Invalid token");
         }
         Logger::debug("保存机器人:$token");
         $tel->telegram_user_id = $user->id;
@@ -65,18 +64,8 @@ class Cloner implements CloneInterface
         /** @var BotManager $bm */
         $bm = make(BotManager::class);
         $bm->dispatch($token, Events::START);
-
-        $this->onSuccess($instance, $update, $tel);
-    }
-
-    protected function onSuccess(Instance $instance, Update $update, TelegramBot $tel)
-    {
-        Logger::debug("创建成功: bot id={$tel->id}");
         $instance->endState($update);
+        return $tel;
     }
 
-    protected function onError(Instance $instance, Update $update, string $msg)
-    {
-        Logger::debug("创建失败: bot id={$msg}");
-    }
 }
