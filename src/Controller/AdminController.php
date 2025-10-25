@@ -12,9 +12,6 @@ use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
 use William\HyperfExtTelegram\Model\TelegramUser;
 use function Hyperf\Config\config;
-use Hyperf\Swagger\Annotation as SA;
-
-#[SA\HyperfServer(name: 'http')]
 class AdminController extends BaseController
 {
 
