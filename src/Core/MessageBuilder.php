@@ -13,6 +13,7 @@ use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\FileUpload\InputFile;
 use Telegram\Bot\Objects\Message;
+use William\HyperfExtTelegram\Model\TelegramBot;
 use function Hyperf\Config\config;
 use function Hyperf\Support\make;
 use function Hyperf\Translation\trans;

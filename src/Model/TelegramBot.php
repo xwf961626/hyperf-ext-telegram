@@ -17,6 +17,7 @@ use Hyperf\DbConnection\Model\Model;
  * @property string $expired_at
  * @property array $admins
  * @property string $status
+ * @property string $kefu
  * @property array $settings
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
@@ -41,6 +42,7 @@ class TelegramBot extends Model
         'expired_at',
         'telegram_user_id',
         'settings',
+        'kefu',
     ];
 
     /**

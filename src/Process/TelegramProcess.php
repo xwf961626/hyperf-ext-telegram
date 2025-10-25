@@ -19,6 +19,7 @@ class TelegramProcess extends AbstractProcess
 
     protected BotManager $botManager;
     protected Redis $redis;
+
     public function __construct(ContainerInterface $container, RedisFactory $redisFactory)
     {
         parent::__construct($container);
@@ -50,15 +51,32 @@ class TelegramProcess extends AbstractProcess
                 $cmd = json_decode($cmd, true);
                 if ($cmd['botId'] && $cmd['command']) {
                     $bot = TelegramBot::find($cmd['botId']);
-                    if($bot) {
+                    if ($bot) {
                         if ($cmd['command'] === 'stop') {
                             $this->botManager->stopBot($bot);
                         }
-                        if($cmd['command'] === 'start') {
+                        if ($cmd['command'] === 'start') {
                             $this->botManager->startBot($bot);
                         }
-                        if($cmd['command'] === 'add') {
+                        if ($cmd['command'] === 'add') {
                             $this->botManager->startBot($bot);
+                        }
+                        if ($cmd['command'] == 'updateToken') {
+                            Logger::debug("关闭机器人");
+                            $this->botManager->stopBot($bot);
+                            Logger::debug("更新token");
+                            $bot->token = $cmd['token'];
+                            $bot->save();
+                            Logger::debug("启动机器人");
+                            $this->botManager->startBot($bot);
+                        }
+                        if ($cmd['command'] == 'restart') {
+                            $this->botManager->stopBot($bot);
+                            $this->botManager->startBot($bot);
+                        }
+                        if ($cmd['command'] == 'delete') {
+                            $this->botManager->stopBot($bot);
+                            $bot->delete();
                         }
                     }
                     $this->redis->del('robot_command'); // 处理完成后删除
