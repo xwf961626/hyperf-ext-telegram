@@ -204,8 +204,7 @@ class Instance
             Logger::debug("on callback query <= " . $callbackDataKey);
             $callbackData = $this->cache->get($callbackDataKey);
             if (!$callbackData) {
-                Logger::error("callback query 不存在或已过期");
-                return;
+                throw new RuntimeError("Update has expired");
             }
             $parts = parse_url($callbackData);
 
