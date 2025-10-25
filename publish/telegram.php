@@ -1,5 +1,5 @@
 <?php
-
+use function Hyperf\Support\env;
 return [
     'welcome' => \William\HyperfExtTelegram\Component\WelcomeMessage::class,
     'languages' => ['zh_CN', 'en'],
