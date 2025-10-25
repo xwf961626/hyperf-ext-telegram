@@ -8,6 +8,7 @@ use Hyperf\Redis\Redis;
 use Hyperf\Redis\RedisFactory;
 use Telegram\Bot\Api;
 use William\HyperfExtTelegram\Core\BotManager;
+use William\HyperfExtTelegram\Middleware\CloneMiddleware;
 use William\HyperfExtTelegram\Model\TelegramBot;
 use function Hyperf\Translation\trans;
 
@@ -26,7 +27,7 @@ class CloneController extends BaseController
             Router::get('/restart/{id}', [self::class, 'restart']);
             Router::get('/delete/{id}', [self::class, 'delete']);
             Router::get('/status/{id}', [self::class, 'status']);
-        });
+        }, ['middleware' => [CloneMiddleware::class]]);
 
     }
 
