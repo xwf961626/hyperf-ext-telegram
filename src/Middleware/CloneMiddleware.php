@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace William\HyperfExtTelegram\Middleware;
 
+use Hyperf\HttpServer\Contract\RequestInterface;
+use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
 use Phper666\JWTAuth\Exception\JWTException;
 use Phper666\JWTAuth\Exception\TokenValidException;
 use Phper666\JWTAuth\Util\JWTUtil;
@@ -16,20 +18,37 @@ use function Hyperf\Support\env;
 
 class CloneMiddleware implements MiddlewareInterface
 {
-    public function __construct(protected ContainerInterface $container)
+    protected ContainerInterface $container;
+
+    protected RequestInterface $request;
+
+    protected HttpResponse $response;
+
+    public function __construct(ContainerInterface $container, HttpResponse $response, RequestInterface $request)
     {
+        $this->container = $container;
+        $this->response = $response;
+        $this->request = $request;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $token = $request->getHeaderLine('CLONE-KEY') ?? '';
         if ($token == "") {
-            throw new \RuntimeException('Missing CLONE-KEY', 400);
+            return $this->response->json([
+                'code' => 400,
+                'msg' => 'Missing CLONE-KEY',
+                'flag' => false,
+            ])->withStatus(400);
         }
         if ($token == env('CLONE_KEY')) {
             return $handler->handle($request);
         }
 
-        throw new TokenValidException('CLONE-KEY authentication does not pass', 400);
+        return $this->response->json([
+            'code' => 400,
+            'msg' => 'Invalid CLONE-KEY',
+            'flag' => false,
+        ])->withStatus(400);
     }
 }
