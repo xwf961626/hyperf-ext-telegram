@@ -19,7 +19,7 @@ class CloneController extends BaseController
     public static function registerCloneRoutes()
     {
         Router::addGroup('/clone/bot', function () {
-            Router::post('/add', [self::class, 'addBot']);
+            Router::post('/add', [self::class, 'add']);
             Router::post('/update_token/{id}', [self::class, 'updateToken']);
             Router::post('/update_admins/{id}', [self::class, 'updateAdmins']);
             Router::get('/start/{id}', [self::class, 'start']);
