@@ -53,28 +53,33 @@ class TelegramProcess extends AbstractProcess
                     $bot = TelegramBot::find($cmd['botId']);
                     if ($bot) {
                         if ($cmd['command'] === 'stop') {
+                            Logger::debug("[botManger]关闭机器人...");
                             $this->botManager->stopBot($bot);
                         }
                         if ($cmd['command'] === 'start') {
+                            Logger::debug("[botManger]启动机器人...");
                             $this->botManager->startBot($bot);
                         }
                         if ($cmd['command'] === 'add') {
+                            Logger::debug("[botManger]开始添加机器人...");
                             $this->botManager->startBot($bot);
                         }
                         if ($cmd['command'] == 'updateToken') {
-                            Logger::debug("关闭机器人");
+                            Logger::debug("[botManger]更新机器人token");
                             $this->botManager->stopBot($bot);
-                            Logger::debug("更新token");
+                            Logger::debug("[botManger]更新token");
                             $bot->token = $cmd['token'];
                             $bot->save();
-                            Logger::debug("启动机器人");
+                            Logger::debug("[botManger]启动机器人");
                             $this->botManager->startBot($bot);
                         }
                         if ($cmd['command'] == 'restart') {
+                            Logger::debug("[botManger]重启机器人...");
                             $this->botManager->stopBot($bot);
                             $this->botManager->startBot($bot);
                         }
                         if ($cmd['command'] == 'delete') {
+                            Logger::debug("[botManger]删除机器人...");
                             $this->botManager->stopBot($bot);
                             $bot->delete();
                         }

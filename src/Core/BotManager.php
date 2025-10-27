@@ -361,6 +361,6 @@ class BotManager
     public function startBot(TelegramBot $bot)
     {
         Logger::info('正在启动机器人' . $bot->username);
-        $this->startPulling($bot);
+        $this->addBot($bot->token, $bot->language);
     }
 }
