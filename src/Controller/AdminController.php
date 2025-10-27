@@ -105,10 +105,7 @@ class AdminController extends BaseController
             return $this->error(config('telegram.validate_messages')['telegram token not found']);
         }
         try {
-            if ($bot->delete()) {
-                $this->setCommand('stop', $bot->id);
-                TelegramUser::where('bot_id', $bot->id)->delete();
-            }
+            $this->setCommand('delete', $bot->id);
         } catch (\Exception $e) {
             Logger::error($e->getMessage());
             return $this->error($e->getMessage());
