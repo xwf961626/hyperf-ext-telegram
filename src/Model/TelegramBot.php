@@ -24,6 +24,7 @@ use Hyperf\DbConnection\Model\Model;
  */
 class TelegramBot extends Model
 {
+    public bool $timestamps = true;
     /**
      * The table associated with the model.
      */
