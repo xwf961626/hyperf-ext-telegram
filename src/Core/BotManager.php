@@ -147,9 +147,11 @@ class BotManager
     public function stopBot(TelegramBot $bot): void
     {
         $this->logger->info("Stopping bot $bot->username ...");
+
         /** @var Instance $instance */
         if (isset($this->bots[$bot->token])) {
             $instance = $this->bots[$bot->token];
+            $this->logger->info("当前机器人状态是否正在运行： {$instance->isRunning()}");
             $instance->stop();
             unset($this->bots[$bot->token]);
         } else {

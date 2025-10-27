@@ -76,6 +76,7 @@ class Instance
 
     public function webhook(bool $condition = true): void
     {
+        $this->mode = 'webhook';
         Logger::debug("instance starting webhook...");
         if ($condition) {
             $sign = md5($this->bot->id . $this->bot->token . time() . random_bytes(10));
@@ -701,6 +702,7 @@ class Instance
         if ($this->isRunning()) {
             Logger::debug("关闭成功");
             $this->running = false;
+            Logger::debug("运行模式：{$this->mode}");
             if ($this->mode === 'webhook') {
                 Logger::debug("删除webhook");
                 $this->telegram->deleteWebhook();
