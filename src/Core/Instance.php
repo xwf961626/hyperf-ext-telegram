@@ -55,6 +55,11 @@ class Instance
         $this->init();
     }
 
+    public function getBot(): TelegramBot
+    {
+        return $this->bot;
+    }
+
     /**
      * @throws TelegramSDKException
      */
