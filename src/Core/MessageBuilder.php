@@ -141,6 +141,12 @@ class MessageBuilder
         return $this;
     }
 
+    public function replyToMessageId($replyToMessageId): self
+    {
+        $this->message['reply_to_message_id'] = $replyToMessageId;
+        return $this;
+    }
+
     public function addButton(string $key, array $params = [], string $callbackData = '', bool $isLink = false, string $url = ''): self
     {
         if (!isset($this->message['reply_markup'])) {
