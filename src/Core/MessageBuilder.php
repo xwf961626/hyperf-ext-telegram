@@ -141,6 +141,12 @@ class MessageBuilder
         return $this;
     }
 
+    public function disableWebPagePreview(): self
+    {
+        $this->message['disable_web_page_preview'] = true;
+        return $this;
+    }
+
     public function replyToMessageId($replyToMessageId): self
     {
         $this->message['reply_to_message_id'] = $replyToMessageId;
