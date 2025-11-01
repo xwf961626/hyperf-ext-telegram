@@ -252,15 +252,7 @@ class Instance
                     $this->handleText($update, $text);
                 }
             } else {
-                $chatId = $this->getChatId($update);
-                $state = $this->getState($chatId);
-                if ($state) {
-                    Context::set('state', $state);
-                    $this->handleState($update, $state, $text);
-                } else {
-                    Logger::info('handle Text: ' . $text);
-                    $this->handleCommonText($update, $text);
-                }
+                $this->handleStateAnyway($update, $text);
             }
         }
     }
@@ -321,6 +313,8 @@ class Instance
             } else {
                 Logger::info("Menu#$menu 未定义处理器");
             }
+        } else {
+            $this->handleStateAnyway($update, $text);
         }
     }
 
@@ -725,6 +719,19 @@ class Instance
             } else {
                 Logger::error("文本处理类不存在：$handler");
             }
+        }
+    }
+
+    private function handleStateAnyway($update, $text)
+    {
+        $chatId = $this->getChatId($update);
+        $state = $this->getState($chatId);
+        if ($state) {
+            Context::set('state', $state);
+            $this->handleState($update, $state, $text);
+        } else {
+            Logger::info('handle Text: ' . $text);
+            $this->handleCommonText($update, $text);
         }
     }
 }
