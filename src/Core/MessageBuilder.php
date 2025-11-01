@@ -147,6 +147,14 @@ class MessageBuilder
         return $this;
     }
 
+    public function fileId(string $fileId, string $fileType): self
+    {
+        $this->textField = 'caption';
+        $this->messageType = $fileType;
+        $this->message[$fileType] = $fileId;
+        return $this;
+    }
+
     public function replyToMessageId($replyToMessageId): self
     {
         $this->message['reply_to_message_id'] = $replyToMessageId;
