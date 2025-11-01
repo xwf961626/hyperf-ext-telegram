@@ -231,7 +231,7 @@ class Instance
         if ($update->isType('message')) {
             $message = $update->getMessage();
             $text = $message->getText();
-            if($text) {
+            if ($text) {
                 if (str_starts_with($text, '/')) {
                     $commands = explode(' ', $text);
                     $command = $commands[0];
@@ -250,6 +250,16 @@ class Instance
                     $this->handleCommand($command, $update);
                 } else {
                     $this->handleText($update, $text);
+                }
+            } else {
+                $chatId = $this->getChatId($update);
+                $state = $this->getState($chatId);
+                if ($state) {
+                    Context::set('state', $state);
+                    $this->handleState($update, $state, $text);
+                } else {
+                    Logger::info('handle Text: ' . $text);
+                    $this->handleCommonText($update, $text);
                 }
             }
         }
@@ -310,16 +320,6 @@ class Instance
                 call_user_func([$instance, $method], $this, $update);
             } else {
                 Logger::info("Menu#$menu 未定义处理器");
-            }
-        } else {
-            $chatId = $this->getChatId($update);
-            $state = $this->getState($chatId);
-            if ($state) {
-                Context::set('state', $state);
-                $this->handleState($update, $state, $text);
-            } else {
-                Logger::info('handle Text: ' . $text);
-                $this->handleCommonText($update, $text);
             }
         }
     }
