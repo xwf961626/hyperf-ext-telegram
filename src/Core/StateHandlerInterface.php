@@ -6,5 +6,5 @@ use Telegram\Bot\Objects\Update;
 
 interface StateHandlerInterface
 {
-    public function handle(Instance $instance, Update $update, StateBus $state, string $text);
+    public function handle(Instance $instance, Update $update, StateBus $state, ?string $text);
 }

@@ -13,9 +13,9 @@ abstract class AbstractStateHandler implements StateHandlerInterface
     protected Instance $telegramInstance;
     protected StateBus $state;
     protected Update $telegramUpdate;
-    protected string $text;
+    protected ?string $text;
 
-    public function handle(Instance $instance, Update $update, StateBus $state, string $text): void
+    public function handle(Instance $instance, Update $update, StateBus $state, ?string $text): void
     {
         $this->telegramInstance = $instance;
         $this->state = $state;
