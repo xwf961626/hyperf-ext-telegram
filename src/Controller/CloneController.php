@@ -59,6 +59,7 @@ class CloneController extends BaseController
         if (!$expiredTime = $this->request->post('expiredTime')) {
             return $this->error(trans('expired time is required'));
         }
+        $expiredTime = intval($expiredTime/1000);
         if (!$admins = $this->request->post('admins')) {
             return $this->error(trans('admins is required'));
         }
