@@ -216,7 +216,7 @@ class CloneController extends BaseController
             if ($expiredTime = $this->request->post('expiredTime')) {
                 return $this->error(trans('expired time is required'));
             }
-            $bot->expired_time = intval($expiredTime);
+            $bot->expired_time = intval($expiredTime/1000);
             $bot->expired_at = Carbon::createFromTimestamp($bot->expired_at);
             $bot->save();
             return $this->success($bot);
