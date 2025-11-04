@@ -38,7 +38,7 @@ class AdminController extends BaseController
         Router::put('telegram/bots/{id}', [self::class, 'editTelegramBot']);
         Router::get('telegram/bots', [self::class, 'getTelegramBots']);
 
-        Router::get('telegram/users', [self::class, 'getTelegramUsers']);
+//        Router::get('telegram/users', [self::class, 'getTelegramUsers']);
     }
 
     public function addTelegramBot(Request $request)
