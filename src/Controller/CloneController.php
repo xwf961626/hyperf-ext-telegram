@@ -59,7 +59,7 @@ class CloneController extends BaseController
         if (!$expiredTime = $this->request->post('expiredTime')) {
             return $this->error(trans('expired time is required'));
         }
-        $expiredTime = intval($expiredTime/1000);
+        $expiredTime = intval($expiredTime / 1000);
         if (!$admins = $this->request->post('admins')) {
             return $this->error(trans('admins is required'));
         }
@@ -91,7 +91,7 @@ class CloneController extends BaseController
     public function updateToken($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id.':%')->first();
+            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -112,7 +112,7 @@ class CloneController extends BaseController
     public function updateAdmins($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id.':%')->first();
+            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -132,7 +132,7 @@ class CloneController extends BaseController
     public function start($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id.':%')->first();
+            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -148,12 +148,12 @@ class CloneController extends BaseController
     public function stop($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id.':%')->first();
+            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
 
-            $this->setCommand('start', $bot->id);
+            $this->setCommand('stop', $bot->id);
 
             return $this->success(['status' => 'stopped']);
         } catch (\Throwable $e) {
@@ -164,7 +164,7 @@ class CloneController extends BaseController
     public function restart($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id.':%')->first();
+            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -180,7 +180,7 @@ class CloneController extends BaseController
     public function delete($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id.':%')->first();
+            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -196,7 +196,7 @@ class CloneController extends BaseController
     public function status($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id.':%')->first();
+            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -209,14 +209,14 @@ class CloneController extends BaseController
     public function updateUseTime($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id.':%')->first();
+            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
             if ($expiredTime = $this->request->post('expiredTime')) {
                 return $this->error(trans('expired time is required'));
             }
-            $bot->expired_time = intval($expiredTime/1000);
+            $bot->expired_time = intval($expiredTime / 1000);
             $bot->expired_at = Carbon::createFromTimestamp($bot->expired_at);
             $bot->save();
             return $this->success($bot);
