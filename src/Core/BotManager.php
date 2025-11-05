@@ -154,6 +154,8 @@ class BotManager
             $this->logger->info("当前机器人状态是否正在运行： {$instance->isRunning()}");
             $instance->stop();
             unset($this->bots[$bot->token]);
+            $bot->status = 'stopped';
+            $bot->save();
         } else {
             Logger::debug("关闭机器人失败：{$bot->username} 未运行");
         }
