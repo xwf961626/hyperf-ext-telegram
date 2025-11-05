@@ -11,7 +11,9 @@ use Hyperf\Redis\Redis;
 use Hyperf\Redis\RedisFactory;
 use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
+use Telegram\Bot\Objects\Chat;
 use Telegram\Bot\Objects\Update;
+use Telegram\Bot\Objects\User;
 use William\HyperfExtTelegram\Core\Annotation\AnnotationRegistry;
 use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
@@ -202,9 +204,47 @@ class Instance
         $chatId = $chat->id;
         Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
         $this->initLang($chatId);
-        $this->initUser($chatId, $update);
+
+        if ($update->isType('my_chat_member')) { // 进群
+            Logger::debug("my_chat_member...");
+            $event = null;
+            if ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'left') {
+                $event = Events::EVENT_BOT_PULL_INTO_GROUP;
+            } elseif ($update->myChatMember->newChatMember->status == 'kicked' && $update->myChatMember->oldChatMember->status == 'member') {
+                $event = Events::EVENT_BOT_BLOCKED;
+            } elseif ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'kicked') {
+                $event = Events::EVENT_BOT_UNBLOCKED;
+            }
+            if ($event) {
+                $this->onEvent($update, $event);
+            }
+        }
+
+        if (!empty($update->chatMember)) {
+            Logger::debug("chatMember...");
+            $event = null;
+            if ($update->chatMember->newChatMember->status == 'member' && $update->chatMember->oldChatMember->status == 'left') {
+                $event = Events::EVENT_USER_INVITED_TO_GROUP;
+            } elseif ($update->chatMember->newChatMember->status == 'kicked' && $update->chatMember->oldChatMember->status == 'member') {
+                $event = Events::EVENT_USER_KICKED_FROM_GROUP;
+            } elseif ($update->chatMember->newChatMember->status == 'administrator' && $update->chatMember->oldChatMember->status == 'member') {
+                $event = Events::EVENT_USER_SET_ADMIN;
+            } elseif ($update->chatMember->newChatMember->status == 'left' && $update->chatMember->oldChatMember->status == 'member') {
+                $event = Events::EVENT_USER_LEFT_GROUP;
+            }
+            if ($event) {
+                $this->onEvent($update, $event);
+            }
+        }
+
+        // 表示 用户申请加入群/频道（即开启了 “加入需审批” 功能的群）
+        if (!empty($update->chatJoinRequest)) {
+            $this->onEvent($update, Events::EVENT_CHAT_JOIN_REQUEST);
+        }
+
         // 1. 回调查询（按钮）
         if ($update->isType('callback_query')) {
+            $this->initUser($chatId, $update);
             $callback = $update->getCallbackQuery();
             $callbackDataKey = $callback->getData();
             Logger::debug("on callback query <= " . $callbackDataKey);
@@ -229,6 +269,7 @@ class Instance
 
         // 2. 普通消息（指令 or 文本）
         if ($update->isType('message')) {
+            $this->initUser($chatId, $update);
             $message = $update->getMessage();
             $text = $message->getText();
             if ($text) {
@@ -732,6 +773,20 @@ class Instance
         } else {
             Logger::info('handle Text: ' . $text);
             $this->handleCommonText($update, $text);
+        }
+    }
+
+    private function onEvent(Update $update, string $event)
+    {
+        $listener = AnnotationRegistry::getEventListener($event);
+        if ($listener) {
+            /** @var Listener $instance */
+            [$instance, $method] = $listener;
+            $class = get_class($instance);
+            Logger::info("Found Event Listener $class@$method");
+            call_user_func([$instance, $method], $this, $update);
+        } else {
+            Logger::info("无监听事件：" . $event);
         }
     }
 }

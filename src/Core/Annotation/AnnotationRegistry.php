@@ -18,6 +18,7 @@ class AnnotationRegistry
 
     protected static array $returnHandlers = [];
     protected static array $errorHandlers = [];
+    private static array $eventListeners = [];
 
 
     public static function register(): void
@@ -29,6 +30,7 @@ class AnnotationRegistry
         self::registerEventHandlers();
         self::registerReturnToHandlers();
         self::registerErrorHandlers();
+        self::registerEventListeners();
     }
 
     public static function getCommandHandler(string $command): ?array
@@ -152,10 +154,30 @@ class AnnotationRegistry
         }
     }
 
+    private static function registerEventListeners(): void
+    {
+        $classes = AnnotationCollector::getClassesByAnnotation(Listener::class);
+        foreach ($classes as $class => $annotation) {
+            /** @var Listener $annotation */
+            $event = $annotation->event;
+            $method = 'handle'; // 默认方法
+            Logger::info("Found event listener: {$event} @ {$class}::{$method}");
+            self::$eventListeners[$event] = [make($class), $method];
+        }
+    }
+
     public static function getErrorHandler($err): ?ErrorInterface
     {
         if (isset(self::$errorHandlers[$err])) {
             [$instance, $method] = self::$errorHandlers[$err];
+            return $instance;
+        }
+        return null;
+    }
+    public static function getEventListener($event): ?\William\HyperfExtTelegram\Core\Listener
+    {
+        if (isset(self::$eventListeners[$event])) {
+            [$instance, $method] = self::$eventListeners[$event];
             return $instance;
         }
         return null;
