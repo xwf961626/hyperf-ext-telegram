@@ -778,13 +778,10 @@ class Instance
 
     private function onEvent(Update $update, string $event)
     {
+        /** @var Listener $listener */
         $listener = AnnotationRegistry::getEventListener($event);
         if ($listener) {
-            /** @var Listener $instance */
-            [$instance, $method] = $listener;
-            $class = get_class($instance);
-            Logger::info("Found Event Listener $class@$method");
-            call_user_func([$instance, $method], $this, $update);
+            $listener->handle($this, $update);
         } else {
             Logger::info("无监听事件：" . $event);
         }
