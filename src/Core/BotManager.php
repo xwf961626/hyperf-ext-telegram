@@ -104,6 +104,9 @@ class BotManager
         } else {
             $this->startPulling($bot);
         }
+        $this->bots[$bot->id] = $instance;
+        $bot->status = 'running';
+        $bot->save();
         return $bot;
     }
 
@@ -124,10 +127,10 @@ class BotManager
     public function startPulling(TelegramBot $bot, bool $async = true): void
     {
         Logger::info("Worker#{$this->workerId} 启动机器人 {$bot->id} ...");
-        if (isset($this->bots[$bot->id])) {
-            $this->logger->info("Bot {$bot->id} already running.");
-            return;
-        }
+//        if (isset($this->bots[$bot->id])) {
+//            $this->logger->info("Bot {$bot->id} already running.");
+//            return;
+//        }
         if ($async) {
             Coroutine::create(function () use ($bot) {
                 $this->polling($bot);
@@ -351,9 +354,7 @@ class BotManager
 
         $this->redis->sAdd('tg_bot:workers', $this->workerId);
         $this->redis->sAdd('tg_bot:worker:' . $this->workerId, $bot->id);
-        $this->bots[$bot->id] = $instance;
-        $bot->status = 'running';
-        $bot->save();
+
         return $instance;
     }
 
