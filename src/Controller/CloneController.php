@@ -221,7 +221,7 @@ class CloneController extends BaseController
             $bot->expired_time = intval($expiredTime) / 1000;
             $bot->expired_at = Carbon::createFromTimestamp($bot->expired_time);
             $bot->save();
-            return $this->success(['expiredTime' => $bot->expired_time, 'expired_at' => $bot->expired_at]);
+            return $this->success(['expiredTime' => $expiredTime, 'expired_at' => $bot->expired_at]);
         } catch (\Throwable $e) {
             return $this->error($e->getMessage());
         }
