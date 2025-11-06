@@ -27,6 +27,7 @@ class CloneController extends BaseController
             Router::get('/restart/{id}', [self::class, 'restart']);
             Router::get('/delete/{id}', [self::class, 'delete']);
             Router::get('/status/{id}', [self::class, 'status']);
+            Router::get('/update_use_time/{id}', [self::class, 'updateUseTime']);
         }, ['middleware' => [CloneMiddleware::class]]);
 
     }
