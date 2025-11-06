@@ -753,6 +753,10 @@ class Instance
 
     private function handleCommonText(Update $update, $text)
     {
+        if(!$text) {
+            Logger::debug("文本为空，不处理");
+            return;
+        }
         if ($handler = config('telegram.common_text_handler')) {
             if (class_exists($handler)) {
                 $handlerIns = new $handler($this, $update);
