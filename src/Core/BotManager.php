@@ -98,15 +98,15 @@ class BotManager
         $env = \Hyperf\Support\env('APP_ENV');
         Logger::debug("当前环境：$env 模式 $mode");
         $instance = $this->newInstance($bot);
+        $this->bots[$bot->id] = $instance;
+        $bot->status = 'running';
+        $bot->save();
         if ($mode == 'webhook') {
             $instance->sync();
             $instance->webhook();
         } else {
             $this->startPulling($bot);
         }
-        $this->bots[$bot->id] = $instance;
-        $bot->status = 'running';
-        $bot->save();
         return $bot;
     }
 
@@ -360,6 +360,11 @@ class BotManager
 
     public function startBot(TelegramBot $bot)
     {
+        $instance = $this->getBot($bot->id);
+        if($instance) {
+            Logger::debug("该bot已在运行中");
+            return;
+        }
         Logger::info('正在启动机器人' . $bot->username);
         $this->addBot($bot);
     }
