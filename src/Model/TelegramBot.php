@@ -14,7 +14,7 @@ use Hyperf\DbConnection\Model\Model;
  * @property string $language
  * @property int $expired_time
  * @property int $telegram_user_id
- * @property string $expired_at
+ * @property \Carbon\Carbon $expired_at
  * @property array $admins
  * @property string $status
  * @property string $kefu

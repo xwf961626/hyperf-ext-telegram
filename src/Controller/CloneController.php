@@ -27,7 +27,7 @@ class CloneController extends BaseController
             Router::get('/restart/{id}', [self::class, 'restart']);
             Router::get('/delete/{id}', [self::class, 'delete']);
             Router::get('/status/{id}', [self::class, 'status']);
-            Router::get('/update_use_time/{id}', [self::class, 'updateUseTime']);
+            Router::post('/update_use_time/{id}', [self::class, 'updateUseTime']);
         }, ['middleware' => [CloneMiddleware::class]]);
 
     }
@@ -210,6 +210,7 @@ class CloneController extends BaseController
     public function updateUseTime($id)
     {
         try {
+            /** @var TelegramBot $bot */
             $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
@@ -218,7 +219,7 @@ class CloneController extends BaseController
                 return $this->error(trans('expired time is required'));
             }
             $bot->expired_time = intval($expiredTime / 1000);
-            $bot->expired_at = Carbon::createFromTimestamp($bot->expired_at);
+            $bot->expired_at = Carbon::createFromTimestamp($bot->expired_time);
             $bot->save();
             return $this->success($bot);
         } catch (\Throwable $e) {
