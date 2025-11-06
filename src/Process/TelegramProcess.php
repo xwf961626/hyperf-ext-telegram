@@ -66,11 +66,19 @@ class TelegramProcess extends AbstractProcess
                         }
                         if ($cmd['command'] == 'updateToken') {
                             Logger::debug("[botManger]更新机器人token");
+							$token = $cmd['token'];
+							$arr1 = explode(':', $token);
+							$arr2 = explode(':', $bot->token);
+							if($arr1[0] == $arr2[0]) {
+								$bot->token = $cmd['token'];
+								$bot->save();
+							}
+                            Logger::debug("关闭旧机器人");
                             $this->botManager->stopBot($bot);
-                            Logger::debug("[botManger]更新token");
                             $bot->token = $cmd['token'];
                             $bot->save();
-                            Logger::debug("[botManger]启动机器人");
+                            Logger::debug("[botManger]更新token");
+                            Logger::debug("[botManger]启动新机器人");
                             $this->botManager->startBot($bot);
                         }
                         if ($cmd['command'] == 'restart') {

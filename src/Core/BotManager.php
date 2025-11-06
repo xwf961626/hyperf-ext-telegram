@@ -58,14 +58,14 @@ class BotManager
         AnnotationRegistry::register();
     }
 
-    public function getBot($token): Instance
+    public function getBot($id): Instance
     {
-        return $this->bots[$token];
+        return $this->bots[$id];
     }
 
-    public function isRunning($token): bool
+    public function isRunning($id): bool
     {
-        return isset($this->bots[$token]);
+        return isset($this->bots[$id]);
     }
 
     public function start(): void
@@ -80,7 +80,8 @@ class BotManager
             if (\Hyperf\Support\env('APP_ENV') != 'prod') {
                 $token = \Hyperf\Config\config('telegram.dev_token');
                 Logger::debug("启动测试机器人 $token");
-                $bot = TelegramBot::updateOrCreate(['token' => $token]);
+                $arr = explode(':', $token);
+                $bot = TelegramBot::updateOrCreate(['id' => $arr[0]], ['token' => $token]);
                 $this->startPulling($bot);
             } else {
                 $bots = TelegramBot::where('status', '<>', 'invalid')->get();
@@ -96,7 +97,8 @@ class BotManager
         $mode = \Hyperf\Support\env('TELEGRAM_MODE');
         $env = \Hyperf\Support\env('APP_ENV');
         Logger::debug("当前环境：$env 模式 $mode");
-        $bot = TelegramBot::updateOrCreate(['token' => $token], ['language' => $language]);
+        $arr = explode(':', $token);
+        $bot = TelegramBot::updateOrCreate(['id' => $arr[0]], ['language' => $language, 'token' => $token]);
         $instance = $this->newInstance($bot);
         if ($mode == 'webhook') {
             $instance->sync();
@@ -109,39 +111,40 @@ class BotManager
 
     public function startWebhook(): void
     {
-        $bots = TelegramBot::all();
+        $bots = TelegramBot::where('status', '<>', 'invalid')->get();
+        /** @var TelegramBot $bot */
         foreach ($bots as $bot) {
-            Logger::debug("starting webhook: {$bot->token}");
+            Logger::debug("starting webhook: {$bot->id}");
             Logger::debug("new instance...");
             $instance = $this->newInstance($bot);
             Logger::debug("new instance success");
             Logger::debug("starting instance...");
-            $instance->start(isset($this->bots[$bot->token]), 'webhook');
+            $instance->start(isset($this->bots[$bot->id]), 'webhook');
         }
     }
 
     public function startPulling(TelegramBot $bot, bool $async = true): void
     {
-        Logger::info("Worker#{$this->workerId} 启动机器人 {$bot->token} ...");
-        if (isset($this->bots[$bot->token])) {
-            $this->logger->info("Bot {$bot->token} already running.");
+        Logger::info("Worker#{$this->workerId} 启动机器人 {$bot->id} ...");
+        if (isset($this->bots[$bot->id])) {
+            $this->logger->info("Bot {$bot->id} already running.");
             return;
         }
         if ($async) {
             Coroutine::create(function () use ($bot) {
-                $this->polling($bot->token, $bot);
+                $this->polling($bot);
             });
         } else {
-            $this->polling($bot->token, $bot);
+            $this->polling($bot);
         }
     }
 
-    public function polling(string $token, TelegramBot $bot): void
+    public function polling(TelegramBot $bot): void
     {
-        $this->logger->info("Worker#{$this->workerId} Starting bot: $token");
+        $this->logger->info("Worker#{$this->workerId} Starting bot: {$bot->id}");
         $instance = $this->newInstance($bot);
-        $instance->start(isset($this->bots[$token]));
-        Logger::info("Worker#{$this->workerId} 关闭机器人：" . $token);
+        $instance->start(isset($this->bots[$bot->id]));
+        Logger::info("Worker#{$this->workerId} 关闭机器人：" . $bot->id);
     }
 
     public function stopBot(TelegramBot $bot): void
@@ -149,11 +152,11 @@ class BotManager
         $this->logger->info("Stopping bot $bot->username ...");
 
         /** @var Instance $instance */
-        if (isset($this->bots[$bot->token])) {
-            $instance = $this->bots[$bot->token];
+        if (isset($this->bots[$bot->id])) {
+            $instance = $this->bots[$bot->id];
             $this->logger->info("当前机器人状态是否正在运行： {$instance->isRunning()}");
             $instance->stop();
-            unset($this->bots[$bot->token]);
+            unset($this->bots[$bot->id]);
             $bot->status = 'stopped';
             $bot->save();
         } else {
@@ -181,18 +184,12 @@ class BotManager
     /**
      * @throws \RedisException
      */
-    public function dispatch($token, $event, $extra = []): void
+    public function dispatch($id, $event, $extra = []): void
     {
-        Logger::info("Event#$event => $token");
-        if (str_contains($token, ':')) {
-            $arr = explode(':', $token);
-            $botId = (int)$arr[0];
-        } else {
-            $botId = (int)$token;
-        }
-        $workerId = $this->getWorkerByMod($botId);
+        Logger::info("Event#$event => $id");
+        $workerId = $this->getWorkerByMod($id);
         Logger::info("Dispatch#$workerId");
-        $this->sendEvent($workerId, $event, $token, $extra);
+        $this->sendEvent($workerId, $event, $id, $extra);
     }
 
     public function sendEvent($workerId, $event, $data, $extra = []): void
@@ -230,12 +227,12 @@ class BotManager
         $this->redis->sRem('tg_bot:workers', $this->workerId);
         $bots = $this->redis->sMembers('tg_bot:worker:' . $this->workerId);
         if (!empty($bots)) {
-            foreach ($bots as $token) {
-                if ($model = TelegramBot::where('token', $token)->first()) {
+            foreach ($bots as $id) {
+                if ($model = TelegramBot::find($id)) {
                     $model->status = 'stopped';
                     $model->save();
                 }
-                $this->redis->sRem('tg_bot:worker:' . $this->workerId, $token);
+                $this->redis->sRem('tg_bot:worker:' . $this->workerId, $id);
             }
             $this->redis->del('tg_bot:worker:' . $this->workerId);
         }
@@ -355,8 +352,8 @@ class BotManager
         $instance->setKeyboards($this->keyboards);
 
         $this->redis->sAdd('tg_bot:workers', $this->workerId);
-        $this->redis->sAdd('tg_bot:worker:' . $this->workerId, $bot->token);
-        $this->bots[$bot->token] = $instance;
+        $this->redis->sAdd('tg_bot:worker:' . $this->workerId, $bot->id);
+        $this->bots[$bot->id] = $instance;
         $bot->status = 'running';
         $bot->save();
         return $instance;
@@ -365,6 +362,6 @@ class BotManager
     public function startBot(TelegramBot $bot)
     {
         Logger::info('正在启动机器人' . $bot->username);
-        $this->addBot($bot->token, $bot->language);
+        $this->addBot($bot->id, $bot->language);
     }
 }
