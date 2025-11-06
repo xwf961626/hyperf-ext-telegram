@@ -215,7 +215,7 @@ class CloneController extends BaseController
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
-            if ($expiredTime = $this->request->post('expiredTime')) {
+            if ($expiredTime = $this->request->post('expired_time')) {
                 return $this->error(trans('expired time is required'));
             }
             $bot->expired_time = intval($expiredTime / 1000);
