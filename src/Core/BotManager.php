@@ -77,28 +77,26 @@ class BotManager
         if ($mode == 'webhook') {
             $this->startWebhook();
         } else {
-            if (\Hyperf\Support\env('APP_ENV') != 'prod') {
-                $token = \Hyperf\Config\config('telegram.dev_token');
-                Logger::debug("启动测试机器人 $token");
-                $arr = explode(':', $token);
-                $bot = TelegramBot::updateOrCreate(['id' => $arr[0]], ['token' => $token]);
+//            if (\Hyperf\Support\env('APP_ENV') != 'prod') {
+//                $token = \Hyperf\Config\config('telegram.dev_token');
+//                Logger::debug("启动测试机器人 $token");
+//                $arr = explode(':', $token);
+//                $bot = TelegramBot::updateOrCreate(['id' => $arr[0]], ['token' => $token]);
+//                $this->startPulling($bot);
+//            } else {
+            $bots = TelegramBot::where('status', '<>', 'invalid')->get();
+            foreach ($bots as $bot) {
                 $this->startPulling($bot);
-            } else {
-                $bots = TelegramBot::where('status', '<>', 'invalid')->get();
-                foreach ($bots as $bot) {
-                    $this->startPulling($bot);
-                }
             }
+//            }
         }
     }
 
-    public function addBot($token, $language = 'zh_CN'): TelegramBot
+    public function addBot(TelegramBot $bot): TelegramBot
     {
         $mode = \Hyperf\Support\env('TELEGRAM_MODE');
         $env = \Hyperf\Support\env('APP_ENV');
         Logger::debug("当前环境：$env 模式 $mode");
-        $arr = explode(':', $token);
-        $bot = TelegramBot::updateOrCreate(['id' => $arr[0]], ['language' => $language, 'token' => $token]);
         $instance = $this->newInstance($bot);
         if ($mode == 'webhook') {
             $instance->sync();
@@ -362,6 +360,6 @@ class BotManager
     public function startBot(TelegramBot $bot)
     {
         Logger::info('正在启动机器人' . $bot->username);
-        $this->addBot($bot->id, $bot->language);
+        $this->addBot($bot);
     }
 }

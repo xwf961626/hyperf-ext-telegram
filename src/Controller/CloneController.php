@@ -74,7 +74,9 @@ class CloneController extends BaseController
             if ($bot) {
                 return $this->error(trans('telegram bot already exists'));
             }
-            $bot = new TelegramBot(['token' => $token]);
+            $bot = new TelegramBot();
+            $bot->id = $me->id;
+            $bot->token = $token;
             $bot->expired_time = $expiredTime;
             $bot->expired_at = Carbon::createFromTimestamp($expiredTime);
             $bot->admins = $admins;
@@ -92,7 +94,7 @@ class CloneController extends BaseController
     public function updateToken($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
+            $bot = TelegramBot::find($id);
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -113,7 +115,7 @@ class CloneController extends BaseController
     public function updateAdmins($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
+            $bot = TelegramBot::find($id);
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -133,7 +135,7 @@ class CloneController extends BaseController
     public function start($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
+            $bot = TelegramBot::find($id);
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -149,7 +151,7 @@ class CloneController extends BaseController
     public function stop($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
+            $bot = TelegramBot::find($id);
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -165,7 +167,7 @@ class CloneController extends BaseController
     public function restart($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
+            $bot = TelegramBot::find($id);
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -181,7 +183,7 @@ class CloneController extends BaseController
     public function delete($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
+            $bot = TelegramBot::find($id);
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -197,7 +199,7 @@ class CloneController extends BaseController
     public function status($id)
     {
         try {
-            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
+            $bot = TelegramBot::find($id);
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
@@ -211,7 +213,7 @@ class CloneController extends BaseController
     {
         try {
             /** @var TelegramBot $bot */
-            $bot = TelegramBot::where('token', 'like', $id . ':%')->first();
+            $bot = TelegramBot::find($id);
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
