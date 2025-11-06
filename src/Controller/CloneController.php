@@ -215,13 +215,13 @@ class CloneController extends BaseController
             if (!$bot) {
                 return $this->error(trans('telegram bot not found'));
             }
-            if ($expiredTime = $this->request->post('expired_time')) {
+            if ($expiredTime = $this->request->post('expiredTime')) {
                 return $this->error(trans('expired time is required'));
             }
-            $bot->expired_time = intval($expiredTime / 1000);
+            $bot->expired_time = intval($expiredTime) / 1000;
             $bot->expired_at = Carbon::createFromTimestamp($bot->expired_time);
-            $bot->save(['expiredTime' => $bot->expired_time, 'expired_at' => $bot->expired_at]);
-            return $this->success($bot);
+            $bot->save();
+            return $this->success(['expiredTime' => $bot->expired_time, 'expired_at' => $bot->expired_at]);
         } catch (\Throwable $e) {
             return $this->error($e->getMessage());
         }
