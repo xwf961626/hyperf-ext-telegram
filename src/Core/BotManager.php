@@ -58,9 +58,9 @@ class BotManager
         AnnotationRegistry::register();
     }
 
-    public function getBot($id): Instance
+    public function getBot($id): ?Instance
     {
-        return $this->bots[$id];
+        return $this->bots[$id] ?? null;
     }
 
     public function isRunning($id): bool
@@ -97,13 +97,9 @@ class BotManager
         $mode = \Hyperf\Support\env('TELEGRAM_MODE');
         $env = \Hyperf\Support\env('APP_ENV');
         Logger::debug("当前环境：$env 模式 $mode");
-        $instance = $this->newInstance($bot);
-        $this->bots[$bot->id] = $instance;
-        $bot->status = 'running';
-        $bot->save();
+
         if ($mode == 'webhook') {
-            $instance->sync();
-            $instance->webhook();
+            $this->_webhook($bot);
         } else {
             $this->startPulling($bot);
         }
@@ -117,11 +113,20 @@ class BotManager
         foreach ($bots as $bot) {
             Logger::debug("starting webhook: {$bot->id}");
             Logger::debug("new instance...");
-            $instance = $this->newInstance($bot);
-            Logger::debug("new instance success");
-            Logger::debug("starting instance...");
-            $instance->start(isset($this->bots[$bot->id]), 'webhook');
+            $this->_webhook($bot);
         }
+    }
+
+    function _webhook(TelegramBot $bot): void
+    {
+        $instance = $this->newInstance($bot);
+        Logger::debug("new instance success");
+        Logger::debug("starting instance...");
+        $bot->status = 'running';
+        $bot->save();
+        $this->bots[$bot->id] = $instance;
+        $instance->sync();
+        $instance->start(isset($this->bots[$bot->id]), 'webhook');
     }
 
     public function startPulling(TelegramBot $bot, bool $async = true): void
@@ -144,6 +149,9 @@ class BotManager
     {
         $this->logger->info("Worker#{$this->workerId} Starting bot: {$bot->id}");
         $instance = $this->newInstance($bot);
+        $bot->status = 'running';
+        $bot->save();
+        $this->bots[$bot->id] = $instance;
         $instance->start(isset($this->bots[$bot->id]));
         Logger::info("Worker#{$this->workerId} 关闭机器人：" . $bot->id);
     }
@@ -361,7 +369,7 @@ class BotManager
     public function startBot(TelegramBot $bot)
     {
         $instance = $this->getBot($bot->id);
-        if($instance) {
+        if ($instance) {
             Logger::debug("该bot已在运行中");
             return;
         }
