@@ -10,6 +10,7 @@ use Psr\Container\ContainerInterface;
 use William\HyperfExtTelegram\Core\BotManager;
 use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
+use function Hyperf\Config\config;
 use function Hyperf\Support\env;
 
 
@@ -35,11 +36,17 @@ class TelegramProcess extends AbstractProcess
             $this->botManager->init(1);
             $this->botManager->start();
             Logger::debug("BotManager启动成功!");
+            $onBotManagerStartedHandler = config('telegram.on_bot_manager_started');
+            if ($onBotManagerStartedHandler) {
+                $onBotManagerStartedHandler();
+            }
             file_put_contents($startupFile, date('c'));
         } catch (\Throwable $e) {
             Logger::error('启动失败 ' . $e->getMessage() . $e->getTraceAsString());
         }
-        $this->listenEvents();
+        \Hyperf\Coroutine\go(function () use ($startupFile) {
+            $this->listenEvents();
+        });
     }
 
     private function listenEvents()
@@ -66,13 +73,13 @@ class TelegramProcess extends AbstractProcess
                         }
                         if ($cmd['command'] == 'updateToken') {
                             Logger::debug("[botManger]更新机器人token");
-							$token = $cmd['token'];
-							$arr1 = explode(':', $token);
-							$arr2 = explode(':', $bot->token);
-							if($arr1[0] == $arr2[0]) {
-								$bot->token = $cmd['token'];
-								$bot->save();
-							}
+                            $token = $cmd['token'];
+                            $arr1 = explode(':', $token);
+                            $arr2 = explode(':', $bot->token);
+                            if ($arr1[0] == $arr2[0]) {
+                                $bot->token = $cmd['token'];
+                                $bot->save();
+                            }
                             Logger::debug("关闭旧机器人");
                             $this->botManager->stopBot($bot);
                             $bot->token = $cmd['token'];
