@@ -84,6 +84,8 @@ class BotManager
                     $this->startPulling($bot);
                 } catch (\Throwable $e) {
                     Logger::error("启动pulling {$bot->username} 失败:{$e->getMessage()}");
+                    $bot->status = 'invalid';
+                    $bot->save();
                 }
             }
         }
@@ -114,6 +116,8 @@ class BotManager
                 $this->_webhook($bot);
             } catch (\Throwable $e) {
                 Logger::error("启动webhook {$bot->username} 失败:{$e->getMessage()}");
+                $bot->status = 'invalid';
+                $bot->save();
             }
         }
     }
