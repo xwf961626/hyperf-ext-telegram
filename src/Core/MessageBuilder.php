@@ -161,6 +161,12 @@ class MessageBuilder
         return $this;
     }
 
+    public function messageThreadId(int $messageThreadId = 1): self
+    {
+        $this->message['message_thread_id'] = $messageThreadId;
+        return $this;
+    }
+
     public function addButton(string $key, array $params = [], string $callbackData = '', bool $isLink = false, string $url = ''): self
     {
         if (!isset($this->message['reply_markup'])) {
