@@ -636,10 +636,30 @@ class Instance
         $this->translator->setLocale($language);
     }
 
-    private function initUser($chatId, $update): void
+    private function initUser($chatId, Update $update): void
     {
         $botId = $this->bot->id;
-        $user = TelegramUser::where('user_id', $chatId)->where('bot_id', $botId)->first();
+        // 从 Update 对象中安全地获取 user_id
+        $userId = null;
+
+        if ($update->has('message')) {
+            $userId = $update->getMessage()->getFrom()->getId();
+        } elseif ($update->has('callback_query')) {
+            $userId = $update->getCallbackQuery()->getFrom()->getId();
+        } elseif ($update->has('inline_query')) {
+            $userId = $update->getInlineQuery()->getFrom()->getId();
+        } elseif ($update->has('chat_member')) {
+            $userId = $update->getChatMember()->getFrom()->getId();
+        } elseif ($update->has('my_chat_member')) {
+            $userId = $update->getMyChatMember()->getFrom()->getId();
+        }
+
+        if (!$userId) {
+            // 如果无法获取用户 ID，则直接返回或记录日志
+            Logger::debug("无法获取用户 ID");
+            return;
+        }
+        $user = TelegramUser::where('user_id', $userId)->where('bot_id', $botId)->first();
         if ($user) {
             Context::set(self::USER_KEY, $user);
         } else {
