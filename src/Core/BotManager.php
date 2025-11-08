@@ -77,18 +77,15 @@ class BotManager
         if ($mode == 'webhook') {
             $this->startWebhook();
         } else {
-//            if (\Hyperf\Support\env('APP_ENV') != 'prod') {
-//                $token = \Hyperf\Config\config('telegram.dev_token');
-//                Logger::debug("启动测试机器人 $token");
-//                $arr = explode(':', $token);
-//                $bot = TelegramBot::updateOrCreate(['id' => $arr[0]], ['token' => $token]);
-//                $this->startPulling($bot);
-//            } else {
             $bots = TelegramBot::where('status', '<>', 'invalid')->get();
+            /** @var TelegramBot $bot */
             foreach ($bots as $bot) {
-                $this->startPulling($bot);
+                try {
+                    $this->startPulling($bot);
+                } catch (\Throwable $e) {
+                    Logger::error("启动pulling {$bot->username} 失败:{$e->getMessage()}");
+                }
             }
-//            }
         }
     }
 
@@ -111,9 +108,13 @@ class BotManager
         $bots = TelegramBot::where('status', '<>', 'invalid')->get();
         /** @var TelegramBot $bot */
         foreach ($bots as $bot) {
-            Logger::debug("starting webhook: {$bot->id}");
-            Logger::debug("new instance...");
-            $this->_webhook($bot);
+            try {
+                Logger::debug("starting webhook: {$bot->id}");
+                Logger::debug("new instance...");
+                $this->_webhook($bot);
+            } catch (\Throwable $e) {
+                Logger::error("启动webhook {$bot->username} 失败:{$e->getMessage()}");
+            }
         }
     }
 
