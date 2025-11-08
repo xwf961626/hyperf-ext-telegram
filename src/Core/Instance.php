@@ -246,12 +246,15 @@ class Instance
         if ($update->isType('callback_query')) {
             $this->initUser($chatId, $update);
             $callback = $update->getCallbackQuery();
-            $callbackDataKey = $callback->getData();
-            Logger::debug("on callback query <= " . $callbackDataKey);
-            $callbackData = $this->cache->get($callbackDataKey);
-            if (!$callbackData) {
-                throw new RuntimeError("Update has expired");
+            $callbackData = $callback->getData();
+            Logger::debug("on callback query <= " . $callbackData);
+            if(config('telegram.enabled_callback_cached')) {
+                $callbackData = $this->cache->get($callbackData);
+                if (!$callbackData) {
+                    throw new RuntimeError("Update has expired");
+                }
             }
+
             $parts = parse_url($callbackData);
 
             // 第二步：解析 query 参数

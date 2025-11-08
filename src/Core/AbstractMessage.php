@@ -9,6 +9,7 @@ use Hyperf\Redis\Redis;
 use Hyperf\Redis\RedisFactory;
 use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
+use function Hyperf\Config\config;
 use function Hyperf\Support\make;
 use function Hyperf\Translation\trans;
 
@@ -80,14 +81,17 @@ abstract class AbstractMessage implements ReplyMessageInterface
             }
             $route = '/' . trim($route, '/') . '?' . implode("&", $queries);
         }
-        $hashKey = $route . $this->telegram->getAccessToken().$this->chatId;
-        Logger::debug("hash key => $hashKey");
-        $hash = md5($hashKey);
-        $hash = "callback_query:$hash";
-        $cache = make(Cache::class);
-        $cache->set($hash, $route, $ttl);
-        Logger::debug("new callbackdata: $hash => $route");
-        return $hash;
+        if(config('telegram.enabled_callback_cached')) {
+            $hashKey = $route . $this->telegram->getAccessToken() . $this->chatId;
+            Logger::debug("hash key => $hashKey");
+            $hash = md5($hashKey);
+            $hash = "callback_query:$hash";
+            $cache = make(Cache::class);
+            $cache->set($hash, $route, $ttl);
+            Logger::debug("new callbackdata: $hash => $route");
+            return $hash;
+        }
+        return $route;
     }
 
     public function newButton($key, $params = [], $route = '', $routeData = []): array

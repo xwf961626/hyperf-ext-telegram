@@ -5,6 +5,7 @@ namespace William\HyperfExtTelegram\Core;
 use William\HyperfExtTelegram\Trait\ReplyTrait;
 use William\HyperfExtTelegram\Trait\StateTrait;
 use Telegram\Bot\Objects\Update;
+use function Hyperf\Config\config;
 
 abstract class AbstractStateHandler implements StateHandlerInterface
 {
@@ -21,8 +22,10 @@ abstract class AbstractStateHandler implements StateHandlerInterface
         $this->state = $state;
         $this->text = $text;
         $this->telegramUpdate = $update;
+        if(config('telegram.state_delete_pre_message'))
         $this->deletePreMessage();
         $this->_handle();
+        if(config('telegram.state_delete_current_message'))
         $this->deleteCurrentMessage();
     }
 
