@@ -287,8 +287,9 @@ class Instance
                             Context::set(self::QUERY_PARAMS_KEY, $params);
                         }
                     }
-                    $this->handleCommand($command, $update);
-                    return;
+                    if($this->handleCommand($command, $update)){
+                        return;
+                    }
                 }
                 $this->handleText($update, $text);
             } else {
@@ -300,7 +301,7 @@ class Instance
     /**
      * 处理指令
      */
-    protected function handleCommand(string $command, Update $update): void
+    protected function handleCommand(string $command, Update $update): bool
     {
         Logger::info('handle Command: ' . trim($command));
         if ($command == '/start') {
@@ -324,11 +325,9 @@ class Instance
             call_user_func([$instance, $method], $this, $update);
         } else {
             Logger::info("未知命令：$command");
-            if ($unknownCommandHandler = config('telegram.unknown_command_handler')) {
-                $instance = make($unknownCommandHandler);
-                $instance->handle($this, $update);
-            }
+            return false;
         }
+        return true;
     }
 
     private function isMenu($text): ?string
