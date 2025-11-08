@@ -287,11 +287,10 @@ class Instance
                             Context::set(self::QUERY_PARAMS_KEY, $params);
                         }
                     }
-
                     $this->handleCommand($command, $update);
-                } else {
-                    $this->handleText($update, $text);
+                    return;
                 }
+                $this->handleText($update, $text);
             } else {
                 $this->handleStateAnyway($update, $text);
             }
@@ -325,7 +324,7 @@ class Instance
             call_user_func([$instance, $method], $this, $update);
         } else {
             Logger::info("未知命令：$command");
-            if($unknownCommandHandler = config('telegram.unknown_command_handler')) {
+            if ($unknownCommandHandler = config('telegram.unknown_command_handler')) {
                 $instance = make($unknownCommandHandler);
                 $instance->handle($this, $update);
             }
@@ -777,7 +776,7 @@ class Instance
 
     private function handleCommonText(Update $update, $text)
     {
-        if(!$text) {
+        if (!$text) {
             Logger::debug("文本为空，不处理");
             return;
         }
