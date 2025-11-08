@@ -325,6 +325,10 @@ class Instance
             call_user_func([$instance, $method], $this, $update);
         } else {
             Logger::info("未知命令：$command");
+            if($unknownCommandHandler = config('telegram.unknown_command_handler')) {
+                $instance = make($unknownCommandHandler);
+                $instance->handle($this, $update);
+            }
         }
     }
 
