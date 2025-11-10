@@ -238,6 +238,12 @@ class CloneController extends BaseController
             'botId' => $botId,
             'token' => $token,
         ]));
+
+        $this->redis->xAdd('robot_command_queue', "*", [
+            'command' => $cmd,
+            'botId' => $botId,
+            'token' => $token,
+        ]);
     }
 
 }
