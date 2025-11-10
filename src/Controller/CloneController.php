@@ -83,6 +83,7 @@ class CloneController extends BaseController
             $bot->username = $me->username;
             $bot->nickname = $me->firstName . ' ' . $me->lastName;
             $bot->kefu = $kefu;
+            $bot->status = 'running';
             $bot->save();
             $this->setCommand('add', $bot->id);
             return $this->success($bot);
