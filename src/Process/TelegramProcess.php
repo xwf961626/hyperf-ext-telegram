@@ -82,8 +82,8 @@ class TelegramProcess extends AbstractProcess
                             }
                             Logger::debug("关闭旧机器人");
                             $this->botManager->stopBot($bot);
-                            $bot->token = $cmd['token'];
-                            $bot->save();
+//                            $bot->token = $cmd['token'];
+//                            $bot->save();
                             Logger::debug("[botManger]更新token");
                             Logger::debug("[botManger]启动新机器人");
                             $this->botManager->startBot($bot);
