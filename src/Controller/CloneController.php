@@ -105,7 +105,8 @@ class CloneController extends BaseController
                 return $this->error(trans('token already exists'));
             }
             $this->setCommand('updateToken', $bot->id, $token);
-
+            $bot->token = $token;
+            $bot->save();
             return $this->success($bot);
         } catch (\Throwable $e) {
             return $this->error($e->getMessage());
