@@ -233,12 +233,6 @@ class CloneController extends BaseController
 
     protected function setCommand($cmd, $botId, $token = '')
     {
-        $this->redis->set('robot_command', json_encode([
-            'command' => $cmd,
-            'botId' => $botId,
-            'token' => $token,
-        ]));
-
         $this->redis->xAdd('robot_command_queue', "*", [
             'command' => $cmd,
             'botId' => $botId,
