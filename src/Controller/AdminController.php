@@ -12,6 +12,7 @@ use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
 use William\HyperfExtTelegram\Model\TelegramUser;
 use function Hyperf\Config\config;
+
 class AdminController extends BaseController
 {
 
@@ -23,12 +24,13 @@ class AdminController extends BaseController
         $this->redis = $redisFactory->get('default');
     }
 
-    protected function setCommand($cmd, $botId)
+    protected function setCommand($cmd, $botId, $token = '')
     {
-        $this->redis->set('robot_command', json_encode([
+        $this->redis->xAdd('robot_command_queue', "*", [
             'command' => $cmd,
             'botId' => $botId,
-        ]));
+            'token' => $token,
+        ]);
     }
 
     public static function addRoutes(): void
