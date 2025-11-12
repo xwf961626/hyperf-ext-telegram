@@ -117,15 +117,11 @@ class Instance
                 ]);
                 foreach ($updates as $update) {
                     $offset = $update['update_id'] + 1;
-                    $lockKey = "telegram:update_lock:{$update->getChat()->id}";
-                    Logger::debug("update lock: $lockKey");
-                    $lockTtl = 300; // 秒，锁有效期（5分钟）
-                    // 1. Redis锁防止并发重复
-                    $isFirst = $this->redis->set($lockKey, 1, ['NX', 'EX' => $lockTtl]);
-                    if (!$isFirst) {
-                        Logger::debug("跳过频繁的update id: {$update['update_id']}");
+
+                    if (!$lockKey = $this->debounce($update)) {
                         continue;
                     }
+
                     \Hyperf\Coroutine\go(function () use ($update, $lockKey) {
                         try {
                             $this->handleUpdate($update);
@@ -153,6 +149,43 @@ class Instance
             }
         }
         Logger::debug("机器人结束Pulling");
+    }
+
+    private function debounce(Update $update): ?string
+    {
+        $chatId = $update->getChat()?->id ?? null;
+        $userId = $update->getMessage()?->from?->id
+            ?? $update->getCallbackQuery()?->from?->id
+            ?? null;
+
+        // 如果取不到用户或群信息则跳过
+        if (!$chatId || !$userId) {
+            return null;
+        }
+
+        // 判断类型：命令 / 按钮 / 其他消息
+        if ($update->getCallbackQuery()) {
+            $data = $update->getCallbackQuery()->data ?? '';
+            $lockKey = "telegram:lock:callback:{$userId}:" . md5($data);
+            $lockTtl = 3; // 3秒内重复点击相同按钮将被忽略
+        } elseif ($update->getMessage()?->getText() && str_starts_with($update->getMessage()->getText(), '/')) {
+            $cmd = explode(' ', trim($update->getMessage()->getText()))[0];
+            $lockKey = "telegram:lock:command:{$userId}:" . md5($cmd);
+            $lockTtl = 3; // 3秒内重复输入同命令将被忽略
+        } else {
+            $lockKey = "telegram:lock:msg:{$userId}";
+            $lockTtl = 2; // 普通消息2秒防抖
+        }
+
+        Logger::debug("update lock: $lockKey");
+
+        // Redis 分布式锁，防止频繁触发相同操作
+        $isFirst = $this->redis->set($lockKey, 1, ['NX', 'EX' => $lockTtl]);
+        if (!$isFirst) {
+            Logger::debug("跳过频繁的 update id: {$update['update_id']}, key: $lockKey");
+            return null;
+        }
+        return $lockKey;
     }
 
     public function sync()
@@ -248,7 +281,7 @@ class Instance
             $callback = $update->getCallbackQuery();
             $callbackData = $callback->getData();
             Logger::debug("on callback query <= " . $callbackData);
-            if(config('telegram.enabled_callback_cached')) {
+            if (config('telegram.enabled_callback_cached')) {
                 $callbackData = $this->cache->get($callbackData);
                 if (!$callbackData) {
                     throw new RuntimeError("Update has expired");
@@ -290,7 +323,7 @@ class Instance
                             Context::set(self::QUERY_PARAMS_KEY, $params);
                         }
                     }
-                    if($this->handleCommand($command, $update)){
+                    if ($this->handleCommand($command, $update)) {
                         return;
                     }
                 }
