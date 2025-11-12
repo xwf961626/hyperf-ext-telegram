@@ -1,5 +1,7 @@
 <?php
+
 use function Hyperf\Support\env;
+
 return [
     'welcome' => \William\HyperfExtTelegram\Component\WelcomeMessage::class,
     'languages' => ['zh_CN', 'en'],
@@ -32,5 +34,8 @@ return [
     ],
     'callback_handlers' => [
         'switch_language' => \William\HyperfExtTelegram\Component\Language\SwitchLanguage::class,
-    ]
+    ],
+    'filter' => function (\Telegram\Bot\Objects\Update $update): bool {
+        return false;
+    },
 ];

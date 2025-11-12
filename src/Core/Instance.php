@@ -238,6 +238,13 @@ class Instance
         Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
         $this->initLang($chatId);
 
+        if($filter = config('telegram.filter')) {
+            if($filter($update)) {
+                Logger::debug("此消息被过滤器过滤了");
+                return;
+            }
+        }
+
         if ($update->isType('my_chat_member')) { // 进群
             Logger::debug("my_chat_member...");
             $event = null;
