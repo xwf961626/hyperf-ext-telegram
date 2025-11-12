@@ -239,9 +239,13 @@ class Instance
         $this->initLang($chatId);
 
         if($filter = config('telegram.filter')) {
-            if($filter($update)) {
-                Logger::debug("此消息被过滤器过滤了");
-                return;
+            if(class_exists($filter)) {
+                /** @var UpdateFilterInterface $filterInstance */
+                $filterInstance = make($filter);
+                if($filterInstance->filter($this, $update)) {
+                    Logger::debug("此消息被过滤器过滤了");
+                    return;
+                }
             }
         }
 

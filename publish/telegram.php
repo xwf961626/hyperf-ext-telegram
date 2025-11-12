@@ -35,7 +35,5 @@ return [
     'callback_handlers' => [
         'switch_language' => \William\HyperfExtTelegram\Component\Language\SwitchLanguage::class,
     ],
-    'filter' => function (\Telegram\Bot\Objects\Update $update): bool {
-        return false;
-    },
+    'filter' => null, // class implements \William\HyperfExtTelegram\Core\UpdateFilterInterface
 ];
