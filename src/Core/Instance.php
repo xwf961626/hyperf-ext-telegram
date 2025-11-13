@@ -118,7 +118,8 @@ class Instance
                 foreach ($updates as $update) {
                     $offset = $update['update_id'] + 1;
 
-                    if (!$lockKey = $this->debounce($update)) {
+                    $lockKey = $this->debounce($update);
+                    if ($lockKey === null) {
                         continue;
                     }
 
@@ -173,8 +174,9 @@ class Instance
             $lockKey = "telegram:lock:command:{$userId}:" . md5($cmd);
             $lockTtl = 3; // 3秒内重复输入同命令将被忽略
         } else {
-            $lockKey = "telegram:lock:msg:{$userId}";
-            $lockTtl = 2; // 普通消息2秒防抖
+//            $lockKey = "telegram:lock:msg:{$userId}";
+//            $lockTtl = 2; // 普通消息2秒防抖
+            return "";
         }
 
         Logger::debug("update lock: $lockKey");
