@@ -238,11 +238,11 @@ class Instance
         Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
         $this->initLang($chatId);
 
-        if($filter = config('telegram.filter')) {
-            if(class_exists($filter)) {
+        if ($filter = config('telegram.filter')) {
+            if (class_exists($filter)) {
                 /** @var UpdateFilterInterface $filterInstance */
                 $filterInstance = make($filter);
-                if($filterInstance->filter($this, $update)) {
+                if ($filterInstance->filter($this, $update)) {
                     Logger::debug("此消息被过滤器过滤了");
                     return;
                 }
@@ -822,10 +822,6 @@ class Instance
 
     private function handleCommonText(Update $update, $text)
     {
-        if (!$text) {
-            Logger::debug("文本为空，不处理");
-            return;
-        }
         if ($handler = config('telegram.common_text_handler')) {
             if (class_exists($handler)) {
                 $handlerIns = new $handler($this, $update);
@@ -857,6 +853,16 @@ class Instance
             $listener->handle($this, $update);
         } else {
             Logger::info("无监听事件：" . $event);
+        }
+    }
+
+    private function handleOtherUpdate(Update $update)
+    {
+        if ($handle = config('telegram.handle_other_update')) {
+            if (class_exists($handle)) {
+                $inst = make($handle);
+                $inst->handle($this, $update);
+            }
         }
     }
 }
