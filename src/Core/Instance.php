@@ -239,6 +239,7 @@ class Instance
         $chatId = $chat->id;
         Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
         $this->initLang($chatId);
+        $this->initUser($chatId, $update);
 
         if ($filter = config('telegram.filter')) {
             if (class_exists($filter)) {
@@ -290,7 +291,6 @@ class Instance
 
         // 1. 回调查询（按钮）
         if ($update->isType('callback_query')) {
-            $this->initUser($chatId, $update);
             $callback = $update->getCallbackQuery();
             $callbackData = $callback->getData();
             Logger::debug("on callback query <= " . $callbackData);
@@ -318,7 +318,6 @@ class Instance
 
         // 2. 普通消息（指令 or 文本）
         if ($update->isType('message')) {
-            $this->initUser($chatId, $update);
             $message = $update->getMessage();
             $text = $message->getText();
             if ($text) {
