@@ -45,6 +45,7 @@ class TelegramProcess extends AbstractProcess
             Logger::error('启动失败 ' . $e->getMessage() . $e->getTraceAsString());
         }
         $this->readQueue();
+
     }
 
     private function readQueue($streamName = 'robot_command_queue', $groupName = 'robot_group', $consumerName = 'consumer1')
@@ -83,7 +84,6 @@ class TelegramProcess extends AbstractProcess
             sleep(1);  // 控制循环的频率，避免过度消耗 CPU
         }
     }
-
 
 
     private function handleCommand(array $cmd)
