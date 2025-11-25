@@ -44,12 +44,7 @@ class TelegramProcess extends AbstractProcess
         } catch (\Throwable $e) {
             Logger::error('启动失败 ' . $e->getMessage() . $e->getTraceAsString());
         }
-        \Hyperf\Coroutine\go(function () use ($startupFile) {
-            $this->readQueue();
-        });
-//        \Hyperf\Coroutine\go(function () use ($startupFile) {
-//            $this->listenEvents();
-//        });
+        $this->readQueue();
     }
 
     private function readQueue($streamName = 'robot_command_queue', $groupName = 'robot_group', $consumerName = 'consumer1')
@@ -59,7 +54,7 @@ class TelegramProcess extends AbstractProcess
         // 创建消费者组（只在流不存在时创建）
         try {
             $this->redis->xGroup('CREATE', $streamName, $groupName, '$', true);  // '$' 表示从最新消息开始
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Logger::debug("消费者组已存在，跳过创建");
         }
 
@@ -87,8 +82,6 @@ class TelegramProcess extends AbstractProcess
             // 如果队列为空，稍作等待再重新检查
             sleep(1);  // 控制循环的频率，避免过度消耗 CPU
         }
-
-        Logger::debug("结束读取 robot_command_queue 队列");
     }
 
 
