@@ -63,8 +63,13 @@ class TelegramProcess extends AbstractProcess
 
         while (true) {
             try {
-                // 阻塞 5 秒，提高稳定性
-                $streams = $this->redis->xReadGroup($groupName, $consumerName, [$streamName => '>'], 5000, 1);
+                $streams = $this->redis->xReadGroup(
+                    $groupName,
+                    $consumerName,
+                    [$streamName => '>'],
+                    5000,
+                    1
+                );
 
                 if ($streams) {
                     foreach ($streams as $stream => $messages) {
@@ -75,16 +80,41 @@ class TelegramProcess extends AbstractProcess
                     }
                 }
             } catch (\Throwable $e) {
-                Logger::error("消费者异常: ".$e->getMessage());
-                Co::sleep(1);
+
+                Logger::error("消费者异常: " . $e->getMessage());
+                \Hyperf\Coroutine\Co::sleep(1);
+
                 // 重连
                 $this->redis = $this->redisFactory->get('default');
+
+                // ⭐ 修复 pending
+                try {
+                    $pending = $this->redis->xPending($streamName, $groupName);
+                    if ($pending['count'] > 0) {
+                        Logger::info("发现 pending {$pending['count']} 条，开始 claim");
+
+                        $msgs = $this->redis->xClaim(
+                            $streamName,
+                            $groupName,
+                            $consumerName,
+                            0,
+                            [$pending['min']],
+                            []
+                        );
+
+                        foreach ($msgs as $id => $data) {
+                            $this->handleCommand($data);
+                            $this->redis->xAck($streamName, $groupName, [$id]);
+                        }
+                    }
+                } catch (\Throwable $e2) {
+                    Logger::error("pending 修复失败: " . $e2->getMessage());
+                }
+
                 continue;
             }
         }
     }
-
-
 
     private function handleCommand(array $cmd)
     {
