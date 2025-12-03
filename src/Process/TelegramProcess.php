@@ -82,7 +82,7 @@ class TelegramProcess extends AbstractProcess
             } catch (\Throwable $e) {
 
                 Logger::error("消费者异常: " . $e->getMessage());
-                \Hyperf\Coroutine\Co::sleep(1);
+                Co::sleep(1);
 
                 // 重连
                 $this->redis = $this->redisFactory->get('default');
