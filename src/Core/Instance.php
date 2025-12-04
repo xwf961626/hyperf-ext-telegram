@@ -155,7 +155,7 @@ class Instance
     private function debounce(Update $update): ?string
     {
         $chatId = $update->getChat()?->id ?? null;
-        $userId = $update->getMessage()?->from?->id
+        $userId = $update->message?->from?->id
             ?? $update->getCallbackQuery()?->from?->id
             ?? null;
 
