@@ -19,16 +19,16 @@ class AdminController extends BaseController
 
     public function __construct(protected BotManager $botManager, RedisFactory $redisFactory)
     {
-        parent::__construct();
         $this->redis = $redisFactory->get('default');
     }
 
-    protected function setCommand($cmd, $botId)
+    protected function setCommand($cmd, $botId, $token = '')
     {
-        $this->redis->set('robot_command', json_encode([
+        $this->redis->xAdd('robot_command_queue', "*", [
             'command' => $cmd,
             'botId' => $botId,
-        ]));
+            'token' => $token,
+        ]);
     }
 
     public static function addRoutes(): void

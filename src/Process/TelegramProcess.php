@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace William\HyperfExtTelegram\Process;
 
+use co;
 use Hyperf\Process\AbstractProcess;
 use Hyperf\Redis\Redis;
 use Hyperf\Redis\RedisFactory;
@@ -21,7 +22,7 @@ class TelegramProcess extends AbstractProcess
     protected BotManager $botManager;
     protected Redis $redis;
 
-    public function __construct(ContainerInterface $container, RedisFactory $redisFactory)
+    public function __construct(ContainerInterface $container,protected RedisFactory $redisFactory)
     {
         parent::__construct($container);
         $this->botManager = $container->get(BotManager::class);
@@ -44,54 +45,76 @@ class TelegramProcess extends AbstractProcess
         } catch (\Throwable $e) {
             Logger::error('启动失败 ' . $e->getMessage() . $e->getTraceAsString());
         }
-        \Hyperf\Coroutine\go(function () use ($startupFile) {
-            $this->readQueue();
-        });
-//        \Hyperf\Coroutine\go(function () use ($startupFile) {
-//            $this->listenEvents();
-//        });
+        $this->readQueue();
+
     }
 
-    private function readQueue($streamName = 'robot_command_queue', $groupName = 'robot_group', $consumerName = 'consumer1')
+    private function readQueue($streamName = 'robot_command_queue', $groupName = 'robot_group', $consumerName = null)
     {
-        Logger::debug("开始读取 robot_command_queue 队列");
+        $consumerName = $consumerName ?? 'consumer_' . uniqid();
 
-        // 创建消费者组（只在流不存在时创建）
+        Logger::debug("开始读取 robot_command_queue 队列，消费者：{$consumerName}");
+
         try {
-            $this->redis->xGroup('CREATE', $streamName, $groupName, '$', true);  // '$' 表示从最新消息开始
-        } catch (Exception $e) {
+            $this->redis->xGroup('CREATE', $streamName, $groupName, '$', true);
+        } catch (\Throwable $e) {
             Logger::debug("消费者组已存在，跳过创建");
         }
 
-        // 无限循环，持续读取消息
         while (true) {
-            // 从消费者组中读取消息
-            $streams = $this->redis->xReadGroup($groupName, $consumerName, [$streamName => '>'], 0, 1);  // '>' 表示从未处理的消息开始读取
+            try {
+                $streams = $this->redis->xReadGroup(
+                    $groupName,
+                    $consumerName,
+                    [$streamName => '>'],
+                    5000,
+                    1
+                );
 
-            if ($streams) {
-                foreach ($streams as $stream => $messages) {
-                    foreach ($messages as $id => $message) {
-                        // 输出消息
-                        echo "Message ID: $id\n";
-                        print_r($message);
-
-                        // 处理命令
-                        $this->handleCommand($message);
-
-                        // 确认消息已处理
-                        $this->redis->xAck($streamName, $groupName, [$id]);
+                if ($streams) {
+                    foreach ($streams as $stream => $messages) {
+                        foreach ($messages as $id => $message) {
+                            $this->handleCommand($message);
+                            $this->redis->xAck($streamName, $groupName, [$id]);
+                        }
                     }
                 }
+            } catch (\Throwable $e) {
+
+                Logger::error("消费者异常: " . $e->getMessage());
+                Co::sleep(1);
+
+                // 重连
+                $this->redis = $this->redisFactory->get('default');
+
+                // ⭐ 修复 pending
+                try {
+                    $pending = $this->redis->xPending($streamName, $groupName);
+                    if ($pending['count'] > 0) {
+                        Logger::info("发现 pending {$pending['count']} 条，开始 claim");
+
+                        $msgs = $this->redis->xClaim(
+                            $streamName,
+                            $groupName,
+                            $consumerName,
+                            0,
+                            [$pending['min']],
+                            []
+                        );
+
+                        foreach ($msgs as $id => $data) {
+                            $this->handleCommand($data);
+                            $this->redis->xAck($streamName, $groupName, [$id]);
+                        }
+                    }
+                } catch (\Throwable $e2) {
+                    Logger::error("pending 修复失败: " . $e2->getMessage());
+                }
+
+                continue;
             }
-
-            // 如果队列为空，稍作等待再重新检查
-            sleep(1);  // 控制循环的频率，避免过度消耗 CPU
         }
-
-        Logger::debug("结束读取 robot_command_queue 队列");
     }
-
-
 
     private function handleCommand(array $cmd)
     {
