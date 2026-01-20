@@ -161,7 +161,7 @@ class Instance
     private function debounce(Update $update): ?string
     {
         if($update->myChatMember) {
-            return "groupchannel";
+            return $update->updateId;
         }
         $chatId = $update->getChat()?->id ?? null;
         $userId = $update->message?->from?->id
