@@ -118,7 +118,7 @@ class Instance
                 foreach ($updates as $update) {
                     $offset = $update['update_id'] + 1;
 
-                    if($update->myChatMember) {
+                    if ($update->myChatMember) {
 
                     } else {
 
@@ -160,7 +160,7 @@ class Instance
 
     private function debounce(Update $update): ?string
     {
-        if($update->myChatMember) {
+        if ($update->myChatMember) {
             return $update->updateId;
         }
         $chatId = $update->getChat()?->id ?? null;
@@ -245,7 +245,7 @@ class Instance
     {
         Logger::info("Telegram update => " . json_encode($update, JSON_UNESCAPED_UNICODE));
         $chat = $update->chat;
-        if($chat) {
+        if ($chat) {
             $chatId = $chat->id;
             Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
             $this->initLang($chatId);
@@ -264,43 +264,38 @@ class Instance
         }
 
 
-
-
         if ($update->isType('my_chat_member')) { // 进群
             Logger::debug("my_chat_member...");
-            $event = null;
-            if ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'left') {
-                $event = Events::EVENT_BOT_PULL_INTO_GROUP;
-            } elseif ($update->myChatMember->newChatMember->status == 'kicked' && $update->myChatMember->oldChatMember->status == 'member') {
-                $event = Events::EVENT_BOT_BLOCKED;
-            } elseif ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'kicked') {
-                $event = Events::EVENT_BOT_UNBLOCKED;
-            }
-            if ($event) {
-                $this->onEvent($update, $event);
-            }
+//            if ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'left') {
+//                $event = Events::EVENT_BOT_PULL_INTO_GROUP;
+//            } elseif ($update->myChatMember->newChatMember->status == 'kicked' && $update->myChatMember->oldChatMember->status == 'member') {
+//                $event = Events::EVENT_BOT_BLOCKED;
+//            } elseif ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'kicked') {
+//                $event = Events::EVENT_BOT_UNBLOCKED;
+//            }
+            $this->onEvent($update, Events::EVENT_MY_CHAT_MEMBER);
+            return;
         }
 
         if (!empty($update->chatMember)) {
             Logger::debug("chatMember...");
-            $event = null;
-            if ($update->chatMember->newChatMember->status == 'member' && $update->chatMember->oldChatMember->status == 'left') {
-                $event = Events::EVENT_USER_INVITED_TO_GROUP;
-            } elseif ($update->chatMember->newChatMember->status == 'kicked' && $update->chatMember->oldChatMember->status == 'member') {
-                $event = Events::EVENT_USER_KICKED_FROM_GROUP;
-            } elseif ($update->chatMember->newChatMember->status == 'administrator' && $update->chatMember->oldChatMember->status == 'member') {
-                $event = Events::EVENT_USER_SET_ADMIN;
-            } elseif ($update->chatMember->newChatMember->status == 'left' && $update->chatMember->oldChatMember->status == 'member') {
-                $event = Events::EVENT_USER_LEFT_GROUP;
-            }
-            if ($event) {
-                $this->onEvent($update, $event);
-            }
+//            if ($update->chatMember->newChatMember->status == 'member' && $update->chatMember->oldChatMember->status == 'left') {
+//                $event = Events::EVENT_USER_INVITED_TO_GROUP;
+//            } elseif ($update->chatMember->newChatMember->status == 'kicked' && $update->chatMember->oldChatMember->status == 'member') {
+//                $event = Events::EVENT_USER_KICKED_FROM_GROUP;
+//            } elseif ($update->chatMember->newChatMember->status == 'administrator' && $update->chatMember->oldChatMember->status == 'member') {
+//                $event = Events::EVENT_USER_SET_ADMIN;
+//            } elseif ($update->chatMember->newChatMember->status == 'left' && $update->chatMember->oldChatMember->status == 'member') {
+//                $event = Events::EVENT_USER_LEFT_GROUP;
+//            }
+            $this->onEvent($update, Events::EVENT_CHAT_MEMBER);
+            return;
         }
 
         // 表示 用户申请加入群/频道（即开启了 “加入需审批” 功能的群）
         if (!empty($update->chatJoinRequest)) {
             $this->onEvent($update, Events::EVENT_CHAT_JOIN_REQUEST);
+            return;
         }
 
         // 1. 回调查询（按钮）
