@@ -244,8 +244,8 @@ class Instance
     public function handleUpdate(Update $update): void
     {
         Logger::info("Telegram update => " . json_encode($update, JSON_UNESCAPED_UNICODE));
-        $chat = $update->chat;
-        if ($chat) {
+        if (!$update->myChatMember) {
+            $chat = $update->getChat();
             $chatId = $chat->id;
             Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
             $this->initLang($chatId);
