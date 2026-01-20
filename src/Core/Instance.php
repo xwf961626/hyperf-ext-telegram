@@ -118,6 +118,12 @@ class Instance
                 foreach ($updates as $update) {
                     $offset = $update['update_id'] + 1;
 
+                    if($update->myChatMember) {
+
+                    } else {
+
+                    }
+
                     $lockKey = $this->debounce($update);
                     if ($lockKey === null) {
                         continue;
@@ -154,6 +160,9 @@ class Instance
 
     private function debounce(Update $update): ?string
     {
+        if($update->myChatMember) {
+            return "groupchannel";
+        }
         $chatId = $update->getChat()?->id ?? null;
         $userId = $update->message?->from?->id
             ?? $update->getCallbackQuery()?->from?->id
@@ -235,22 +244,27 @@ class Instance
     public function handleUpdate(Update $update): void
     {
         Logger::info("Telegram update => " . json_encode($update, JSON_UNESCAPED_UNICODE));
-        $chat = $update->getChat();
-        $chatId = $chat->id;
-        Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
-        $this->initLang($chatId);
-        $this->initUser($chatId, $update);
+        $chat = $update->chat;
+        if($chat) {
+            $chatId = $chat->id;
+            Logger::info("chat id => {$chatId}, chat title => {$chat->title}");
+            $this->initLang($chatId);
+            $this->initUser($chatId, $update);
 
-        if ($filter = config('telegram.filter')) {
-            if (class_exists($filter)) {
-                /** @var UpdateFilterInterface $filterInstance */
-                $filterInstance = make($filter);
-                if ($filterInstance->filter($this, $update)) {
-                    Logger::debug("此消息被过滤器过滤了");
-                    return;
+            if ($filter = config('telegram.filter')) {
+                if (class_exists($filter)) {
+                    /** @var UpdateFilterInterface $filterInstance */
+                    $filterInstance = make($filter);
+                    if ($filterInstance->filter($this, $update)) {
+                        Logger::debug("此消息被过滤器过滤了");
+                        return;
+                    }
                 }
             }
         }
+
+
+
 
         if ($update->isType('my_chat_member')) { // 进群
             Logger::debug("my_chat_member...");
