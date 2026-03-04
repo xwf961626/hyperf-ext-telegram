@@ -46,9 +46,8 @@ class AdminController extends BaseController
         if (!$token = $request->post('token')) {
             return $this->error(config('telegram.validate_messages')['telegram token is required']);
         }
-        $language = $request->post('language', 'zh_CN');
         try {
-            $bot = TelegramBot::updateOrCreate(['token' => $token], ['language' => $language, 'status' => 'stopped']);
+            $bot = TelegramBot::updateOrCreate(['token' => $token], $request->post());
             $this->setCommand('add', $bot->id);
             return $this->success($bot);
         } catch (\Exception $e) {
@@ -78,7 +77,7 @@ class AdminController extends BaseController
         }
         try {
             $oldStatus = $bot->status;
-            $bot->update($request->post());
+            $bot->update($request->all());
             if ($this->redis->exists('bot:' . $bot->token)) {
                 $this->redis->del('bot:' . $bot->token);
             }
