@@ -82,6 +82,7 @@ class AdminController extends BaseController
             return $this->error(config('telegram.validate_messages')['telegram token not found']);
         }
         try {
+            $oldToken = $bot->token;
             $updates = $request->all();
             $oldStatus = $bot->status;
             if ($token = $request->input('token')) {
@@ -100,13 +101,18 @@ class AdminController extends BaseController
                 $this->redis->del('bot:' . $bot->token);
             }
             $bot->refresh();
-            if ($oldStatus === 'running' && $bot->status === 'stopped') {
-                Logger::info("管理员关闭机器人");
-                $this->setCommand('stop', $bot->id);
-            }
-            if ($oldStatus === 'stopped' && $bot->status === 'running') {
-                Logger::info("管理员开启机器人");
-                $this->setCommand('start', $bot->id);
+            if($oldToken!==$bot->token){
+                Logger::info("token变更，重启机器人");
+                $this->setCommand('restart', $bot->id);
+            } else {
+                if ($oldStatus === 'running' && $bot->status === 'stopped') {
+                    Logger::info("管理员关闭机器人");
+                    $this->setCommand('stop', $bot->id);
+                }
+                if ($oldStatus === 'stopped' && $bot->status === 'running') {
+                    Logger::info("管理员开启机器人");
+                    $this->setCommand('start', $bot->id);
+                }
             }
         } catch (\Exception $e) {
             Logger::error($e->getMessage());
