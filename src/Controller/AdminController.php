@@ -47,7 +47,12 @@ class AdminController extends BaseController
             return $this->error(config('telegram.validate_messages')['telegram token is required']);
         }
         try {
-            $bot = TelegramBot::updateOrCreate(['token' => $token], $request->post());
+            $tokenArr = explode(':', $token);
+            if (count($tokenArr) !== 2) {
+                return $this->error(config('telegram.validate_messages')['telegram token is invalid']);
+            }
+            $id = $tokenArr[0];
+            $bot = TelegramBot::updateOrCreate(['token' => $token, 'id' => $id], $request->post());
             $this->setCommand('add', $bot->id);
             return $this->success($bot);
         } catch (\Exception $e) {
