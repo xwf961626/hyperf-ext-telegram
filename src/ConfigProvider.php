@@ -28,13 +28,13 @@ class ConfigProvider
             ],
             'publish' => [
                 [
-                    'id' => 'tron',
+                    'id' => 'telegram-config',
                     'description' => 'tron',
                     'source' => __DIR__ . '/../publish/telegram.php',
                     'destination' => BASE_PATH . '/config/autoload/telegram.php',
                 ],
                 [
-                    'id' => 'migrations',
+                    'id' => 'telegram-migrations',
                     'description' => 'telegram bot migrations',
                     'source' => __DIR__ . '/../migrations/',
                     'destination' => BASE_PATH . '/migrations/',
