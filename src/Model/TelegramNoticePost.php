@@ -16,6 +16,7 @@ use Hyperf\DbConnection\Model\Model;
  * @property array $receivers
  * @property array $bot_ids
  * @property int $to_all
+ * @property string $send_type
  */
 class TelegramNoticePost extends Model
 {
@@ -34,6 +35,7 @@ class TelegramNoticePost extends Model
         'bot_ids',
         'to_all',
         'fail_reason',
+        'send_type',
     ];
 
     /**

@@ -1,7 +1,7 @@
 version: '3'
 services:
   app:
-    image: docker.te-k8s.com/wl/hyperf-energy-bot:latest
+    image: harbor.node8.xyz/wenfeng/hyperf-energy-bot:latest
     container_name: ext-telegram
     volumes:
       - ./:/data/project
@@ -27,18 +27,6 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: ext_tg_phpmyadmin
-    restart: always
-    ports:
-      - "8080:80"
-    environment:
-      PMA_HOST: mysql
-      PMA_USER: root
-      PMA_PASSWORD: root
-    depends_on:
-      - mysql
   redis:
     image: redis:7
     container_name: ext_tg_redis
@@ -48,13 +36,6 @@ services:
     volumes:
       - redis_data:/data
 
-  redis-insight:
-    image: redis/redisinsight:latest
-    container_name: ext_tg_redis_insight
-    ports:
-      - "5540:5540"
-    depends_on:
-      - redis
 volumes:
   mysql_data:
   redis_data:
