@@ -10,8 +10,13 @@ use Hyperf\DbConnection\Model\Model;
  * @property int $id 
  * @property \Carbon\Carbon $created_at 
  * @property \Carbon\Carbon $updated_at 
- * @property int $notice_id 
- * @property string $status 
+ * @property \Carbon\Carbon $end_time
+ * @property int $notice_id
+ * @property int $template_id
+ * @property int $total
+ * @property int $success
+ * @property int $fail
+ * @property string $status
  * @property string $fail_reason
  * @property array $receivers
  * @property array $bot_ids
@@ -36,12 +41,17 @@ class TelegramNoticePost extends Model
         'to_all',
         'fail_reason',
         'send_type',
+        'total',
+        'success',
+        'fail',
+        'end_time',
+        'template_id',
     ];
 
     /**
      * The attributes that should be cast to native types.
      */
-    protected array $casts = ['id' => 'integer', 'created_at' => 'datetime',
+    protected array $casts = ['id' => 'integer', 'created_at' => 'datetime', 'end_time' => 'datetime',
         'receivers' => 'json',
         'bot_ids' => 'json',
         'updated_at' => 'datetime', 'notice_id' => 'integer', 'to_all' => 'integer'];
