@@ -3,9 +3,13 @@
 namespace William\HyperfExtTelegram\Job;
 
 use Hyperf\AsyncQueue\Job;
+use Hyperf\Context\ApplicationContext;
+use Hyperf\Redis\RedisFactory;
 use Swoole\Coroutine;
 use Telegram\Bot\Objects\Update;
+use William\HyperfExtTelegram\Core\ErrorHandlerFactory;
 use William\HyperfExtTelegram\Core\Instance;
+use William\HyperfExtTelegram\Core\RuntimeError;
 use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
 
@@ -20,18 +24,28 @@ class TelegramUpdateJob extends Job
         $this->botId = $botId;
     }
 
-    public function handle()
+    public function handle(): void
     {
+        Logger::info("telegram update 回调处理: ".json_encode($this->updateArray));
+        $instance = new Instance(TelegramBot::find($this->botId));
+        $update = Update::make($this->updateArray);
         try {
             // 在这里处理更新，可以调用 handleUpdate
-            Logger::info("telegram update 回调处理: ".json_encode($this->updateArray));
-            $instance = new Instance(TelegramBot::find($this->botId));
-            $update = Update::make($this->updateArray);
             $instance->handleUpdate($update);
+        } catch (RuntimeError $e) {
+            try {
+                if ($errorHandler = ApplicationContext::getContainer()->get(ErrorHandlerFactory::class)->get($e->getMessage())) {
+                    $handlerClass = get_class($errorHandler);
+                    Logger::debug("Error {$e->getMessage()} handled by {$handlerClass}.");
+                    $errorHandler->notify($instance, $update, $e->getExtra());
+                } else {
+                    Logger::error("未定义的错误处理器 {$e->getMessage()}");
+                }
+            } catch (\Exception $e) {
+                Logger::error("pulling 异常 {$e->getMessage()}");
+            }
         } catch (\Throwable $e) {
-            Coroutine::sleep(0.1); // 可选：避免阻塞
-            // 异常记录
-            Logger::error("处理 TelegramUpdateJob 异常: " . $e->getMessage());
+            Logger::info("handleUpdate未知异常:" . $e->getMessage() . $e->getTraceAsString());
         }
     }
 }

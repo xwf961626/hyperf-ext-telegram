@@ -143,20 +143,8 @@ class Instance
                         Logger::info("push update to queue: updateId=".$update->updateId);
                         $this->queue->push(new TelegramUpdateJob($update->toArray(), $this->bot->id));
                         // $this->handleUpdate($update);
-                    } catch (RuntimeError $e) {
-                        try {
-                            if ($errorHandler = ApplicationContext::getContainer()->get(ErrorHandlerFactory::class)->get($e->getMessage())) {
-                                $handlerClass = get_class($errorHandler);
-                                Logger::debug("Error {$e->getMessage()} handled by {$handlerClass}.");
-                                $errorHandler->notify($this, $update, $e->getExtra());
-                            } else {
-                                Logger::error("未定义的错误处理器 {$e->getMessage()}");
-                            }
-                        } catch (\Exception $e) {
-                            Logger::error("pulling 异常 {$e->getMessage()}");
-                        }
                     } catch (\Throwable $e) {
-                        Logger::info("handleUpdate未知异常:" . $e->getMessage() . $e->getTraceAsString());
+                        Logger::info("push update to queue: updateId=".$update->updateId."未知异常:" . $e->getMessage() . $e->getTraceAsString());
                     } finally {
                         $this->redis->del($lockKey);
                     }
