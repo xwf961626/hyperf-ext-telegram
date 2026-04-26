@@ -107,6 +107,11 @@ class Instance
         $this->setCommands();
         $this->running = true;
         Logger::debug("开始 pulling...");
+
+        // 协程池大小限制
+        $maxConcurrency = config('telegram.max_concurrency', 20); // 最大同时处理更新数
+        $channel = new \Swoole\Coroutine\Channel($maxConcurrency);
+
         while ($this->running) {
             try {
                 $updates = $this->telegram->getUpdates([
@@ -123,7 +128,10 @@ class Instance
                         continue;
                     }
 
-                    \Hyperf\Coroutine\go(function () use ($update, $lockKey) {
+                    // 协程池控制并发
+                    $channel->push(1); // 占用一个槽位
+
+                    \Hyperf\Coroutine\go(function () use ($update, $lockKey, $channel) {
                         try {
                             $this->handleUpdate($update);
                         } catch (RuntimeError $e) {
@@ -142,6 +150,7 @@ class Instance
                             Logger::info("handleUpdate未知异常:" . $e->getMessage() . $e->getTraceAsString());
                         } finally {
                             $this->redis->del($lockKey);
+                            $channel->pop(); // 释放槽位
                         }
                     });
                 }
