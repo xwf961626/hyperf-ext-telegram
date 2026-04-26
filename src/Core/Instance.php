@@ -16,10 +16,13 @@ use Telegram\Bot\Objects\Update;
 use Telegram\Bot\Objects\User;
 use William\HyperfExtTelegram\Core\Annotation\AnnotationRegistry;
 use William\HyperfExtTelegram\Helper\Logger;
+use William\HyperfExtTelegram\Job\TelegramUpdateJob;
 use William\HyperfExtTelegram\Model\TelegramBot;
 use William\HyperfExtTelegram\Model\TelegramUser;
 use function Hyperf\Config\config;
 use function Hyperf\Support\make;
+use Hyperf\AsyncQueue\Driver\DriverFactory;
+use Hyperf\AsyncQueue\Driver\DriverInterface;
 
 class Instance
 {
@@ -43,6 +46,7 @@ class Instance
     private $mode = 'pulling';
     protected Cache $cache;
     private $states = [];
+    private DriverInterface $queue;
 
     public function __construct(TelegramBot $bot)
     {
@@ -50,10 +54,12 @@ class Instance
         $this->token = $bot->token;
         $arr = explode(':', $bot->token);
         $this->botID = (int)$arr[0];
-        $this->redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get('default');
+        $container = ApplicationContext::getContainer();
+        $this->redis = $container->get(RedisFactory::class)->get('default');
         $this->cache = make(Cache::class);
-        $this->clientFactory = ApplicationContext::getContainer()->get(ClientFactory::class);
-        $this->translator = ApplicationContext::getContainer()->get(TranslatorInterface::class);
+        $this->clientFactory = $container->get(ClientFactory::class);
+        $this->translator = $container->get(TranslatorInterface::class);
+        $this->queue = $container->get(DriverFactory::class)->get('fast');
         $this->init();
     }
 
@@ -67,8 +73,12 @@ class Instance
      */
     private function init(): void
     {
-        $telegram = TelegramBotFactory::create($this->clientFactory, $this->token, [],
-            \Hyperf\Support\env('TG_ENDPOINT', 'https://api.telegram.org'));
+        $telegram = TelegramBotFactory::create(
+            $this->clientFactory,
+            $this->token,
+            [],
+            \Hyperf\Support\env('TG_ENDPOINT', 'https://api.telegram.org')
+        );
         $this->telegram = $telegram;
     }
 
@@ -108,10 +118,6 @@ class Instance
         $this->running = true;
         Logger::debug("开始 pulling...");
 
-        // 协程池大小限制
-        $maxConcurrency = config('telegram.max_concurrency', 20); // 最大同时处理更新数
-        $channel = new \Swoole\Coroutine\Channel($maxConcurrency);
-
         while ($this->running) {
             try {
                 $updates = $this->telegram->getUpdates([
@@ -124,9 +130,7 @@ class Instance
                     $offset = $update['update_id'] + 1;
 
                     if ($update->myChatMember) {
-
                     } else {
-
                     }
 
                     $lockKey = $this->debounce($update);
@@ -134,31 +138,28 @@ class Instance
                         continue;
                     }
 
-                    // 协程池控制并发
-                    $channel->push(1); // 占用一个槽位
-
-                    \Hyperf\Coroutine\go(function () use ($update, $lockKey, $channel) {
+                    try {
+                        // 2. 推送到队列
+                        Logger::info("push update to queue: updateId=".$update->updateId);
+                        $this->queue->push(new TelegramUpdateJob($update->toArray(), $this->bot->id));
+                        // $this->handleUpdate($update);
+                    } catch (RuntimeError $e) {
                         try {
-                            $this->handleUpdate($update);
-                        } catch (RuntimeError $e) {
-                            try {
-                                if ($errorHandler = ApplicationContext::getContainer()->get(ErrorHandlerFactory::class)->get($e->getMessage())) {
-                                    $handlerClass = get_class($errorHandler);
-                                    Logger::debug("Error {$e->getMessage()} handled by {$handlerClass}.");
-                                    $errorHandler->notify($this, $update, $e->getExtra());
-                                } else {
-                                    Logger::error("未定义的错误处理器 {$e->getMessage()}");
-                                }
-                            } catch (\Exception $e) {
-                                Logger::error("pulling 异常 {$e->getMessage()}");
+                            if ($errorHandler = ApplicationContext::getContainer()->get(ErrorHandlerFactory::class)->get($e->getMessage())) {
+                                $handlerClass = get_class($errorHandler);
+                                Logger::debug("Error {$e->getMessage()} handled by {$handlerClass}.");
+                                $errorHandler->notify($this, $update, $e->getExtra());
+                            } else {
+                                Logger::error("未定义的错误处理器 {$e->getMessage()}");
                             }
-                        } catch (\Throwable $e) {
-                            Logger::info("handleUpdate未知异常:" . $e->getMessage() . $e->getTraceAsString());
-                        } finally {
-                            $this->redis->del($lockKey);
-                            $channel->pop(); // 释放槽位
+                        } catch (\Exception $e) {
+                            Logger::error("pulling 异常 {$e->getMessage()}");
                         }
-                    });
+                    } catch (\Throwable $e) {
+                        Logger::info("handleUpdate未知异常:" . $e->getMessage() . $e->getTraceAsString());
+                    } finally {
+                        $this->redis->del($lockKey);
+                    }
                 }
             } catch (\Throwable $e) {
                 Logger::info("getUpdates未知异常:" . $e->getMessage() . $e->getTraceAsString());
@@ -192,8 +193,8 @@ class Instance
             $lockKey = "telegram:lock:command:{$userId}:" . md5($cmd);
             $lockTtl = 3; // 3秒内重复输入同命令将被忽略
         } else {
-//            $lockKey = "telegram:lock:msg:{$userId}";
-//            $lockTtl = 2; // 普通消息2秒防抖
+            //            $lockKey = "telegram:lock:msg:{$userId}";
+            //            $lockTtl = 2; // 普通消息2秒防抖
             return "";
         }
 
@@ -275,28 +276,28 @@ class Instance
 
         if ($update->isType('my_chat_member')) { // 进群
             Logger::debug("my_chat_member...");
-//            if ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'left') {
-//                $event = Events::EVENT_BOT_PULL_INTO_GROUP;
-//            } elseif ($update->myChatMember->newChatMember->status == 'kicked' && $update->myChatMember->oldChatMember->status == 'member') {
-//                $event = Events::EVENT_BOT_BLOCKED;
-//            } elseif ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'kicked') {
-//                $event = Events::EVENT_BOT_UNBLOCKED;
-//            }
+            //            if ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'left') {
+            //                $event = Events::EVENT_BOT_PULL_INTO_GROUP;
+            //            } elseif ($update->myChatMember->newChatMember->status == 'kicked' && $update->myChatMember->oldChatMember->status == 'member') {
+            //                $event = Events::EVENT_BOT_BLOCKED;
+            //            } elseif ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'kicked') {
+            //                $event = Events::EVENT_BOT_UNBLOCKED;
+            //            }
             $this->onEvent($update, Events::EVENT_MY_CHAT_MEMBER);
             return;
         }
 
         if (!empty($update->chatMember)) {
             Logger::debug("chatMember...");
-//            if ($update->chatMember->newChatMember->status == 'member' && $update->chatMember->oldChatMember->status == 'left') {
-//                $event = Events::EVENT_USER_INVITED_TO_GROUP;
-//            } elseif ($update->chatMember->newChatMember->status == 'kicked' && $update->chatMember->oldChatMember->status == 'member') {
-//                $event = Events::EVENT_USER_KICKED_FROM_GROUP;
-//            } elseif ($update->chatMember->newChatMember->status == 'administrator' && $update->chatMember->oldChatMember->status == 'member') {
-//                $event = Events::EVENT_USER_SET_ADMIN;
-//            } elseif ($update->chatMember->newChatMember->status == 'left' && $update->chatMember->oldChatMember->status == 'member') {
-//                $event = Events::EVENT_USER_LEFT_GROUP;
-//            }
+            //            if ($update->chatMember->newChatMember->status == 'member' && $update->chatMember->oldChatMember->status == 'left') {
+            //                $event = Events::EVENT_USER_INVITED_TO_GROUP;
+            //            } elseif ($update->chatMember->newChatMember->status == 'kicked' && $update->chatMember->oldChatMember->status == 'member') {
+            //                $event = Events::EVENT_USER_KICKED_FROM_GROUP;
+            //            } elseif ($update->chatMember->newChatMember->status == 'administrator' && $update->chatMember->oldChatMember->status == 'member') {
+            //                $event = Events::EVENT_USER_SET_ADMIN;
+            //            } elseif ($update->chatMember->newChatMember->status == 'left' && $update->chatMember->oldChatMember->status == 'member') {
+            //                $event = Events::EVENT_USER_LEFT_GROUP;
+            //            }
             $this->onEvent($update, Events::EVENT_CHAT_MEMBER);
             return;
         }
@@ -797,19 +798,19 @@ class Instance
         $saveDir = BASE_PATH . '/' . config('telegram.store_dir') . '/avatars/';
         $savePath = $saveDir . $userId . '.jpg';
 
-// 创建目录（如果不存在）
+        // 创建目录（如果不存在）
         if (!is_dir($saveDir)) {
             mkdir($saveDir, 0777, true);
         }
 
-// 下载文件
+        // 下载文件
         $avatarData = file_get_contents($avatarUrl);
 
         if ($avatarData === false) {
             throw new \Exception("Failed to download avatar from Telegram.");
         }
 
-// 保存文件
+        // 保存文件
         $fileSaved = file_put_contents($savePath, $avatarData);
 
         if ($fileSaved === false) {
