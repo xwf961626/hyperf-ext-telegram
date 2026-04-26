@@ -81,7 +81,8 @@ class NoticeController extends BaseController
             return $this->error('接收者必填');
         }
         try {
-            $post = TelegramNoticePost::create(compact('notice_id', 'to_all', 'bot_ids', 'receivers'));
+            $send_type = 'admin';
+            $post = TelegramNoticePost::create(compact('notice_id', 'to_all', 'bot_ids', 'receivers', 'send_type'));
             $this->queue->push(new PostNoticeJob($post->id));
             return $this->success($post);
         } catch (\Exception $e) {

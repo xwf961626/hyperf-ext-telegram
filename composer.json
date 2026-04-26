@@ -53,7 +53,21 @@
   },
   "extra": {
     "hyperf": {
-      "config": "William\\HyperfExtTelegram\\ConfigProvider"
+      "config": "William\\HyperfExtTelegram\\ConfigProvider",
+      "publish": [
+        {
+          "id": "telegram-config",
+          "description": "telegram bot config",
+          "source": "config",
+          "destination": "config"
+        },
+        {
+          "id": "telegram-migrations",
+          "description": "telegram bot migrations",
+          "source": "migrations",
+          "destination": "migrations"
+        }
+      ]
     }
   },
   "scripts": {

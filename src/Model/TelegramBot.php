@@ -44,6 +44,7 @@ class TelegramBot extends Model
         'telegram_user_id',
         'settings',
         'kefu',
+        'admins',
     ];
 
     /**

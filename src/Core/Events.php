@@ -4,6 +4,8 @@ namespace William\HyperfExtTelegram\Core;
 
 class Events
 {
+    const string EVENT_MY_CHAT_MEMBER = 'update.my_chat_member';
+    const string EVENT_CHAT_MEMBER = 'update.chat_member';
     const string EVENT_BOT_PULL_INTO_GROUP = 'bot_pull_into_group'; // 机器人被拉进群
     const string EVENT_BOT_BLOCKED = 'bot_kicked_from_group'; // Bot 被踢出群|用户拉黑 Bot（私聊）
     const string EVENT_BOT_UNBLOCKED = 'bot_unblock'; // 用户解除拉黑 Bot

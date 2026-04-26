@@ -12,6 +12,7 @@ use William\HyperfExtTelegram\Helper\Logger;
 use William\HyperfExtTelegram\Model\TelegramBot;
 use William\HyperfExtTelegram\Model\TelegramUser;
 use function Hyperf\Config\config;
+
 class AdminController extends BaseController
 {
 
@@ -46,9 +47,13 @@ class AdminController extends BaseController
         if (!$token = $request->post('token')) {
             return $this->error(config('telegram.validate_messages')['telegram token is required']);
         }
-        $language = $request->post('language', 'zh_CN');
         try {
-            $bot = TelegramBot::updateOrCreate(['token' => $token], ['language' => $language, 'status' => 'stopped']);
+            $tokenArr = explode(':', $token);
+            if (count($tokenArr) !== 2) {
+                return $this->error(config('telegram.validate_messages')['telegram token is invalid']);
+            }
+            $id = $tokenArr[0];
+            $bot = TelegramBot::updateOrCreate(['token' => $token, 'id' => $id], $request->post());
             $this->setCommand('add', $bot->id);
             return $this->success($bot);
         } catch (\Exception $e) {
@@ -77,19 +82,37 @@ class AdminController extends BaseController
             return $this->error(config('telegram.validate_messages')['telegram token not found']);
         }
         try {
+            $oldToken = $bot->token;
+            $updates = $request->all();
             $oldStatus = $bot->status;
-            $bot->update($request->post());
+            if ($token = $request->input('token')) {
+                $tokenArr = explode(':', $token);
+                if (count($tokenArr) !== 2) {
+                    return $this->error(config('telegram.validate_messages')['telegram token is invalid']);
+                }
+                $id = $tokenArr[0];
+                if ($id != $bot->id) {
+                    Logger::error('不允许修改为不同的id');
+                    return $this->error(config('telegram.validate_messages')['different id is not allowed']);
+                }
+            }
+            $bot->update($updates);
             if ($this->redis->exists('bot:' . $bot->token)) {
                 $this->redis->del('bot:' . $bot->token);
             }
             $bot->refresh();
-            if ($oldStatus === 'running' && $bot->status === 'stopped') {
-                Logger::info("管理员关闭机器人");
-                $this->setCommand('stop', $bot->id);
-            }
-            if ($oldStatus === 'stopped' && $bot->status === 'running') {
-                Logger::info("管理员开启机器人");
-                $this->setCommand('start', $bot->id);
+            if($oldToken!==$bot->token){
+                Logger::info("token变更，重启机器人");
+                $this->setCommand('restart', $bot->id);
+            } else {
+                if ($oldStatus === 'running' && $bot->status === 'stopped') {
+                    Logger::info("管理员关闭机器人");
+                    $this->setCommand('stop', $bot->id);
+                }
+                if ($oldStatus === 'stopped' && $bot->status === 'running') {
+                    Logger::info("管理员开启机器人");
+                    $this->setCommand('start', $bot->id);
+                }
             }
         } catch (\Exception $e) {
             Logger::error($e->getMessage());
