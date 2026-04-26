@@ -59,7 +59,7 @@ class Instance
         $this->cache = make(Cache::class);
         $this->clientFactory = $container->get(ClientFactory::class);
         $this->translator = $container->get(TranslatorInterface::class);
-        $this->queue = $container->get(DriverFactory::class)->get('fast');
+        $this->queue = $container->get(DriverFactory::class)->get(config('telegram.queue', 'default'));
         $this->init();
     }
 
