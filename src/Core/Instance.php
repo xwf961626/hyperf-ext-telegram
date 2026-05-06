@@ -26,8 +26,8 @@ use Hyperf\AsyncQueue\Driver\DriverInterface;
 
 class Instance
 {
-    const QUERY_PARAMS_KEY = 'query_params';
-    const USER_KEY = 'user';
+    const QUERY_PARAMS_KEY = "query_params";
+    const USER_KEY = "user";
     protected string $token;
     private Redis $redis;
     /**
@@ -43,7 +43,7 @@ class Instance
     protected $keyboards;
     protected TelegramBot $bot;
     private $running = true;
-    private $mode = 'pulling';
+    private $mode = "pulling";
     protected Cache $cache;
     private $states = [];
     private DriverInterface $queue;
@@ -52,14 +52,16 @@ class Instance
     {
         $this->bot = $bot;
         $this->token = $bot->token;
-        $arr = explode(':', $bot->token);
-        $this->botID = (int)$arr[0];
+        $arr = explode(":", $bot->token);
+        $this->botID = (int) $arr[0];
         $container = ApplicationContext::getContainer();
-        $this->redis = $container->get(RedisFactory::class)->get('default');
+        $this->redis = $container->get(RedisFactory::class)->get("default");
         $this->cache = make(Cache::class);
         $this->clientFactory = $container->get(ClientFactory::class);
         $this->translator = $container->get(TranslatorInterface::class);
-        $this->queue = $container->get(DriverFactory::class)->get(config('telegram.queue', 'default'));
+        $this->queue = $container
+            ->get(DriverFactory::class)
+            ->get(config("telegram.queue", "default"));
         $this->init();
     }
 
@@ -77,35 +79,67 @@ class Instance
             $this->clientFactory,
             $this->token,
             [],
-            \Hyperf\Support\env('TG_ENDPOINT', 'https://api.telegram.org')
+            \Hyperf\Support\env("TG_ENDPOINT", "https://api.telegram.org"),
         );
         $this->telegram = $telegram;
     }
 
     public function setCommands(): void
     {
-        $commands = config('telegram.commands');
-        Logger::debug("set commands => " . json_encode($commands, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $myCommands = [];
+        if ($this->bot->commands) {
+            $commands = explode("\n", $this->bot->commands);
+            foreach ($commands as $c) {
+                $arr = explode("-", $c);
+                if (count($arr) !== 2) {
+                    continue;
+                }
+                $c1 = trim($arr[0]);
+                $c2 = trim($arr[1]);
+                $myCommands[] = ["command" => $c1, "description" => $c2];
+            }
+        }
+
+        if (empty($myCommands)) {
+            $myCommands = config("telegram.commands");
+        }
+
+        if (empty($myCommands)) {
+            $myCommands[] = ["start" => $c1, "description" => "Start Bot"];
+        }
+
+        Logger::debug(
+            "set commands => " .
+                json_encode(
+                    $myCommands,
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE,
+                ),
+        );
+
         $this->telegram->setMyCommands([
-            'commands' => $commands
+            "commands" => $myCommands,
         ]);
     }
 
     public function webhook(bool $condition = true): void
     {
-        $this->mode = 'webhook';
+        $this->mode = "webhook";
         Logger::debug("instance starting webhook...");
         if ($condition) {
-            $sign = md5($this->bot->id . $this->bot->token . time() . random_bytes(10));
-            $url = \Hyperf\Support\env('BOT_WEBHOOK_BASE');
-            $url = rtrim($url, '/');
+            $sign = md5(
+                $this->bot->id . $this->bot->token . time() . random_bytes(10),
+            );
+            $url = \Hyperf\Support\env("BOT_WEBHOOK_BASE");
+            $url = rtrim($url, "/");
             $url = "{$url}/{$this->bot->id}/{$sign}";
             Logger::debug("添加webhook:" . $url);
             $this->telegram->setWebhook([
-                'url' => $url,
+                "url" => $url,
             ]);
             $this->setCommands();
-            ApplicationContext::getContainer()->get(Cache::class)->set("webhook_token:" . $this->bot->id, $sign);
+            ApplicationContext::getContainer()
+                ->get(Cache::class)
+                ->set("webhook_token:" . $this->bot->id, $sign);
             $this->running = true;
         }
     }
@@ -121,13 +155,13 @@ class Instance
         while ($this->running) {
             try {
                 $updates = $this->telegram->getUpdates([
-                    'offset' => $offset,
-                    'limit' => 100,
-                    'timeout' => 3,
-                    'connect_timeout' => 5,
+                    "offset" => $offset,
+                    "limit" => 100,
+                    "timeout" => 3,
+                    "connect_timeout" => 5,
                 ]);
                 foreach ($updates as $update) {
-                    $offset = $update['update_id'] + 1;
+                    $offset = $update["update_id"] + 1;
 
                     if ($update->myChatMember) {
                     } else {
@@ -140,17 +174,35 @@ class Instance
 
                     try {
                         // 2. 推送到队列
-                        Logger::info("push update to queue: updateId=".$update->updateId);
-                        $this->queue->push(new TelegramUpdateJob($update->toArray(), $this->bot->id));
+                        Logger::info(
+                            "push update to queue: updateId=" .
+                                $update->updateId,
+                        );
+                        $this->queue->push(
+                            new TelegramUpdateJob(
+                                $update->toArray(),
+                                $this->bot->id,
+                            ),
+                        );
                         // $this->handleUpdate($update);
                     } catch (\Throwable $e) {
-                        Logger::info("push update to queue: updateId=".$update->updateId."未知异常:" . $e->getMessage() . $e->getTraceAsString());
+                        Logger::info(
+                            "push update to queue: updateId=" .
+                                $update->updateId .
+                                "未知异常:" .
+                                $e->getMessage() .
+                                $e->getTraceAsString(),
+                        );
                     } finally {
                         $this->redis->del($lockKey);
                     }
                 }
             } catch (\Throwable $e) {
-                Logger::info("getUpdates未知异常:" . $e->getMessage() . $e->getTraceAsString());
+                Logger::info(
+                    "getUpdates未知异常:" .
+                        $e->getMessage() .
+                        $e->getTraceAsString(),
+                );
             }
         }
         Logger::debug("机器人结束Pulling");
@@ -162,9 +214,9 @@ class Instance
             return $update->updateId;
         }
         $chatId = $update->getChat()?->id ?? null;
-        $userId = $update->message?->from?->id
-            ?? $update->getCallbackQuery()?->from?->id
-            ?? null;
+        $userId =
+            $update->message?->from?->id ??
+            ($update->getCallbackQuery()?->from?->id ?? null);
 
         // 如果取不到用户或群信息则跳过
         if (!$chatId || !$userId) {
@@ -173,11 +225,14 @@ class Instance
 
         // 判断类型：命令 / 按钮 / 其他消息
         if ($update->getCallbackQuery()) {
-            $data = $update->getCallbackQuery()->data ?? '';
+            $data = $update->getCallbackQuery()->data ?? "";
             $lockKey = "telegram:lock:callback:{$userId}:" . md5($data);
             $lockTtl = 3; // 3秒内重复点击相同按钮将被忽略
-        } elseif ($update->getMessage()?->getText() && str_starts_with($update->getMessage()->getText(), '/')) {
-            $cmd = explode(' ', trim($update->getMessage()->getText()))[0];
+        } elseif (
+            $update->getMessage()?->getText() &&
+            str_starts_with($update->getMessage()->getText(), "/")
+        ) {
+            $cmd = explode(" ", trim($update->getMessage()->getText()))[0];
             $lockKey = "telegram:lock:command:{$userId}:" . md5($cmd);
             $lockTtl = 3; // 3秒内重复输入同命令将被忽略
         } else {
@@ -189,9 +244,11 @@ class Instance
         Logger::debug("update lock: $lockKey");
 
         // Redis 分布式锁，防止频繁触发相同操作
-        $isFirst = $this->redis->set($lockKey, 1, ['NX', 'EX' => $lockTtl]);
+        $isFirst = $this->redis->set($lockKey, 1, ["NX", "EX" => $lockTtl]);
         if (!$isFirst) {
-            Logger::debug("跳过频繁的 update id: {$update['update_id']}, key: $lockKey");
+            Logger::debug(
+                "跳过频繁的 update id: {$update["update_id"]}, key: $lockKey",
+            );
             return null;
         }
         return $lockKey;
@@ -200,14 +257,22 @@ class Instance
     public function sync()
     {
         $me = $this->telegram->getMe();
-        Logger::info("bot getMe => " . json_encode($me, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        TelegramBot::where(['token' => $this->token])->update(['username' => $me->username, 'nickname' => $me->firstName]);
-        $key = 'bot:' . $this->token;
+        Logger::info(
+            "bot getMe => " .
+                json_encode($me, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+        );
+        TelegramBot::where(["token" => $this->token])->update([
+            "username" => $me->username,
+            "nickname" => $me->firstName,
+        ]);
+        $key = "bot:" . $this->token;
         $this->redis->del($key);
     }
 
-    public function start(bool $condition = true, string $method = 'pulling'): void
-    {
+    public function start(
+        bool $condition = true,
+        string $method = "pulling",
+    ): void {
         $this->sync();
         $this->mode = $method;
         call_user_func([$this, $method], $condition);
@@ -215,9 +280,9 @@ class Instance
 
     public function getBotCache(): array
     {
-        $key = 'bot:' . $this->token;
+        $key = "bot:" . $this->token;
         if (!$this->redis->exists($key)) {
-            $botCache = TelegramBot::where('token', $this->token)->first();
+            $botCache = TelegramBot::where("token", $this->token)->first();
             $this->redis->setex($key, 3600, json_encode($botCache));
             return $botCache->toArray();
         }
@@ -226,10 +291,10 @@ class Instance
 
     private function getUserLanguage($chatId)
     {
-        $locale = $this->redis->get('locale:' . $this->botID . ':' . $chatId);
+        $locale = $this->redis->get("locale:" . $this->botID . ":" . $chatId);
         if (!$locale) {
             $botCache = $this->getBotCache();
-            $locale = $botCache['language'] ?? 'zh_CN';
+            $locale = $botCache["language"] ?? "zh_CN";
         }
         return $locale;
     }
@@ -241,7 +306,10 @@ class Instance
      */
     public function handleUpdate(Update $update): void
     {
-        Logger::info("Telegram update => " . json_encode($update, JSON_UNESCAPED_UNICODE));
+        Logger::info(
+            "Telegram update => " .
+                json_encode($update, JSON_UNESCAPED_UNICODE),
+        );
         if (!$update->myChatMember) {
             $chat = $update->getChat();
             $chatId = $chat->id;
@@ -249,7 +317,7 @@ class Instance
             $this->initLang($chatId);
             $this->initUser($chatId, $update);
 
-            if ($filter = config('telegram.filter')) {
+            if ($filter = config("telegram.filter")) {
                 if (class_exists($filter)) {
                     /** @var UpdateFilterInterface $filterInstance */
                     $filterInstance = make($filter);
@@ -261,8 +329,8 @@ class Instance
             }
         }
 
-
-        if ($update->isType('my_chat_member')) { // 进群
+        if ($update->isType("my_chat_member")) {
+            // 进群
             Logger::debug("my_chat_member...");
             //            if ($update->myChatMember->newChatMember->status == 'member' && $update->myChatMember->oldChatMember->status == 'left') {
             //                $event = Events::EVENT_BOT_PULL_INTO_GROUP;
@@ -297,11 +365,11 @@ class Instance
         }
 
         // 1. 回调查询（按钮）
-        if ($update->isType('callback_query')) {
+        if ($update->isType("callback_query")) {
             $callback = $update->getCallbackQuery();
             $callbackData = $callback->getData();
             Logger::debug("on callback query <= " . $callbackData);
-            if (config('telegram.enabled_callback_cached')) {
+            if (config("telegram.enabled_callback_cached")) {
                 $callbackData = $this->cache->get($callbackData);
                 if (!$callbackData) {
                     throw new RuntimeError("Update has expired");
@@ -312,33 +380,33 @@ class Instance
 
             // 第二步：解析 query 参数
             $params = [];
-            if (isset($parts['query'])) {
-                parse_str($parts['query'], $params);
+            if (isset($parts["query"])) {
+                parse_str($parts["query"], $params);
             }
 
             // 输出
-            $path = $parts['path'];  // /foo
+            $path = $parts["path"]; // /foo
             // $params = ['bar' => 'ff', 'baz' => '123'];
             $this->handleCallbackQuery($path, $update, $params);
             return;
         }
 
         // 2. 普通消息（指令 or 文本）
-        if ($update->isType('message')) {
+        if ($update->isType("message")) {
             $message = $update->getMessage();
             $text = $message->getText();
             if ($text) {
-                if (str_starts_with($text, '/')) {
-                    $commands = explode(' ', $text);
+                if (str_starts_with($text, "/")) {
+                    $commands = explode(" ", $text);
                     $command = $commands[0];
-                    $arr1 = explode('@', $command);
+                    $arr1 = explode("@", $command);
                     if (count($arr1) > 1) {
                         $command = $arr1[0];
                     }
                     if (isset($commands[1])) {
-                        $arr2 = explode('_', $commands[1]);
+                        $arr2 = explode("_", $commands[1]);
                         if (!empty($arr2)) {
-                            $params = ['command_data' => $arr2];
+                            $params = ["command_data" => $arr2];
                             Context::set(self::QUERY_PARAMS_KEY, $params);
                         }
                     }
@@ -358,18 +426,20 @@ class Instance
      */
     protected function handleCommand(string $command, Update $update): bool
     {
-        Logger::info('handle Command: ' . trim($command));
-        if ($command == '/start') {
-            Logger::info('更新用户信息');
+        Logger::info("handle Command: " . trim($command));
+        if ($command == "/start") {
+            Logger::info("更新用户信息");
             $this->updateUserInfo($update);
         }
 
-        $handlerConfig = config('telegram.command_handlers');
-        Logger::debug('command_handlers config =>' . json_encode($handlerConfig));
+        $handlerConfig = config("telegram.command_handlers");
+        Logger::debug(
+            "command_handlers config =>" . json_encode($handlerConfig),
+        );
         $handler = null;
         if (isset($handlerConfig[$command])) {
             $instance = make($handlerConfig[$command]);
-            $handler = [$instance, 'handle'];
+            $handler = [$instance, "handle"];
         }
         if (!$handler) {
             $handler = AnnotationRegistry::getCommandHandler($command);
@@ -420,14 +490,22 @@ class Instance
      * 处理回调查询（按钮点击）
      * @throws TelegramSDKException
      */
-    protected function handleCallbackQuery(string $path, Update $update, array $params = []): void
-    {
-        Logger::info('handle query callback: ' . $path . ' params=' . json_encode($params));
+    protected function handleCallbackQuery(
+        string $path,
+        Update $update,
+        array $params = [],
+    ): void {
+        Logger::info(
+            "handle query callback: " .
+                $path .
+                " params=" .
+                json_encode($params),
+        );
         Context::set(self::QUERY_PARAMS_KEY, $params);
-        $handlerConfig = config('telegram.callback_handlers');
+        $handlerConfig = config("telegram.callback_handlers");
         $handler = null;
         if (isset($handlerConfig[$path])) {
-            $handler = [$handlerConfig[$path], 'handle'];
+            $handler = [$handlerConfig[$path], "handle"];
         }
         if (!$handler) {
             $handler = AnnotationRegistry::getQueryCallbackHandler($path);
@@ -459,7 +537,11 @@ class Instance
                 if (!empty($params) && $template) {
                     foreach ($params as $key => $value) {
                         if ($value !== null) {
-                            $template = str_replace(':' . $key, $value, $template);
+                            $template = str_replace(
+                                ":" . $key,
+                                $value,
+                                $template,
+                            );
                         }
                     }
                 }
@@ -483,8 +565,8 @@ class Instance
     public function editMessageText(array $msg, Update $update): void
     {
         $messageId = $this->getMessageId($update);
-        $msg['message_id'] = $messageId;
-        Logger::info('修改消息：' . $messageId);
+        $msg["message_id"] = $messageId;
+        Logger::info("修改消息：" . $messageId);
         $this->telegram->editMessageText($msg);
     }
 
@@ -526,16 +608,16 @@ class Instance
         $type = $chat->getType();
 
         switch ($type) {
-            case 'private':
-                return trim($chat->getFirstName() . ' ' . $chat->getLastName());
+            case "private":
+                return trim($chat->getFirstName() . " " . $chat->getLastName());
 
-            case 'group':
-            case 'supergroup':
-            case 'channel':
+            case "group":
+            case "supergroup":
+            case "channel":
                 return $chat->getTitle(); // 群组/频道的名称
 
             default:
-                return 'Unknown';
+                return "Unknown";
         }
     }
 
@@ -544,10 +626,9 @@ class Instance
         return $this->translator->trans($key, $params);
     }
 
-
     public function transButton(string $key, array $params = []): string
     {
-        return $this->transMessage('buttons.' . $key, $params);
+        return $this->transMessage("buttons." . $key, $params);
     }
 
     /**
@@ -557,17 +638,19 @@ class Instance
     public function changeLanguage(Update $update): void
     {
         $chatId = $this->getChatId($update);
-        $lang = $this->getQueryParam('lang', 'zh_CN');
+        $lang = $this->getQueryParam("lang", "zh_CN");
         $this->redis->set("locale:{$this->botID}:$chatId", $lang);
         LangContext::set($lang);
         $this->translator->setLocale($lang);
-        $this->answer($update, $this->transMessage('switch_language_success'));
+        $this->answer($update, $this->transMessage("switch_language_success"));
     }
 
     public function getQueryParam(?string $key = null, $default = null): mixed
     {
         $params = Context::get(self::QUERY_PARAMS_KEY);
-        if (!$key) return $params;
+        if (!$key) {
+            return $params;
+        }
         if (isset($params[$key])) {
             return $params[$key];
         }
@@ -577,20 +660,23 @@ class Instance
     /**
      * @throws TelegramSDKException
      */
-    public function answer(Update $update, ?string $text = null, bool $showAlert = false): bool
-    {
+    public function answer(
+        Update $update,
+        ?string $text = null,
+        bool $showAlert = false,
+    ): bool {
         if ($callback = $update->getCallbackQuery()) {
             $callbackQueryId = $callback->getId();
             $params = [
-                'callback_query_id' => $callbackQueryId,
+                "callback_query_id" => $callbackQueryId,
             ];
             if ($text !== null) {
-                $params['text'] = $text;
-                $params['show_alert'] = $showAlert;
+                $params["text"] = $text;
+                $params["show_alert"] = $showAlert;
             }
-            Logger::info('AnswerCallbackQuery: ' . json_encode($params));
+            Logger::info("AnswerCallbackQuery: " . json_encode($params));
             $resp = $this->telegram->answerCallbackQuery($params);
-            Logger::info('answerCallbackQuery: ' . $resp);
+            Logger::info("answerCallbackQuery: " . $resp);
             return $resp;
         }
         return false;
@@ -600,7 +686,6 @@ class Instance
     {
         return $this->keyboards;
     }
-
 
     public function getBotID(): int
     {
@@ -612,15 +697,21 @@ class Instance
         $this->keyboards = $keyboards;
     }
 
-    public function startState(int $chatId, string $name, int $ttl = 0): StateBus
-    {
+    public function startState(
+        int $chatId,
+        string $name,
+        int $ttl = 0,
+    ): StateBus {
         $state = new StateBus($chatId, $name, $ttl);
         $this->states[$chatId] = $state;
         return $state;
     }
 
-    public function setState(int $chatId, string $name, string $value = ''): void
-    {
+    public function setState(
+        int $chatId,
+        string $name,
+        string $value = "",
+    ): void {
         $state = $this->getState($chatId);
         $state->add($name, $value);
         $this->states[$chatId] = $state;
@@ -655,7 +746,7 @@ class Instance
      */
     private function handleState(Update $update, StateBus $state, $text): void
     {
-        Logger::info('Handle State ' . json_encode($state));
+        Logger::info("Handle State " . json_encode($state));
         $handler = AnnotationRegistry::getStateHandler($state->get("name"));
         if ($handler) {
             /** @var StateHandlerInterface $instance */
@@ -681,8 +772,8 @@ class Instance
     public function delMessage(Update $update, $messageId = null): void
     {
         $this->telegram->deleteMessage([
-            'chat_id' => $this->getChatId($update),
-            'message_id' => $messageId ?: $this->getMessageId($update),
+            "chat_id" => $this->getChatId($update),
+            "message_id" => $messageId ?: $this->getMessageId($update),
         ]);
     }
 
@@ -699,15 +790,15 @@ class Instance
         // 从 Update 对象中安全地获取 user_id
         $userId = null;
 
-        if ($update->has('message')) {
+        if ($update->has("message")) {
             $userId = $update->getMessage()->getFrom()->getId();
-        } elseif ($update->has('callback_query')) {
+        } elseif ($update->has("callback_query")) {
             $userId = $update->getCallbackQuery()->getFrom()->getId();
-        } elseif ($update->has('inline_query')) {
+        } elseif ($update->has("inline_query")) {
             $userId = $update->getInlineQuery()->getFrom()->getId();
-        } elseif ($update->has('chat_member')) {
+        } elseif ($update->has("chat_member")) {
             $userId = $update->getChatMember()->getFrom()->getId();
-        } elseif ($update->has('my_chat_member')) {
+        } elseif ($update->has("my_chat_member")) {
             $userId = $update->getMyChatMember()->getFrom()->getId();
         }
 
@@ -716,7 +807,9 @@ class Instance
             Logger::debug("无法获取用户 ID");
             return;
         }
-        $user = TelegramUser::where('user_id', $userId)->where('bot_id', $botId)->first();
+        $user = TelegramUser::where("user_id", $userId)
+            ->where("bot_id", $botId)
+            ->first();
         if ($user) {
             Context::set(self::USER_KEY, $user);
         } else {
@@ -734,22 +827,29 @@ class Instance
         $chatId = $this->getChatId($update); // 消息来自群里面的机器人时，这个chatId变成群ID了，
         $botId = $this->bot->id;
         $userInfo = [
-            'bot_id' => $botId,
-            'user_id' => $chatId,
-            'username' => $this->getUsername($update),
-            'nickname' => $this->getNickname($update),
+            "bot_id" => $botId,
+            "user_id" => $chatId,
+            "username" => $this->getUsername($update),
+            "nickname" => $this->getNickname($update),
         ];
-        $getAvatarHandle = config('telegram.get_avatar');
-        $avatarCache = $this->cache->get('avatars:' . $chatId);
+        $getAvatarHandle = config("telegram.get_avatar");
+        $avatarCache = $this->cache->get("avatars:" . $chatId);
         if (!$avatarCache) {
-            $userInfo['avatar'] = $getAvatarHandle ? $getAvatarHandle($update) : $this->getAvatar($update);
-            $this->cache->set('avatars:' . $chatId, $userInfo['avatar'], 600);
+            $userInfo["avatar"] = $getAvatarHandle
+                ? $getAvatarHandle($update)
+                : $this->getAvatar($update);
+            $this->cache->set("avatars:" . $chatId, $userInfo["avatar"], 600);
         }
-        $user = TelegramUser::updateOrCreate([
-            'bot_id' => $botId,
-            'user_id' => $chatId,
-        ], $userInfo);
-        Logger::info('同步用户信息成功：' . $user->id . ' => ' . json_encode($userInfo));
+        $user = TelegramUser::updateOrCreate(
+            [
+                "bot_id" => $botId,
+                "user_id" => $chatId,
+            ],
+            $userInfo,
+        );
+        Logger::info(
+            "同步用户信息成功：" . $user->id . " => " . json_encode($userInfo),
+        );
         Context::set(self::USER_KEY, $user);
     }
 
@@ -760,15 +860,19 @@ class Instance
             $userId = $update->getMessage()->from->id;
 
             $photos = $this->telegram->getUserProfilePhotos([
-                'user_id' => $userId,
-                'limit' => 1,
+                "user_id" => $userId,
+                "limit" => 1,
             ]);
 
             if ($photos->total_count > 0) {
-                $fileId = $photos->photos[0][0]['file_id'];
-                $file = $this->telegram->getFile(['file_id' => $fileId]);
+                $fileId = $photos->photos[0][0]["file_id"];
+                $file = $this->telegram->getFile(["file_id" => $fileId]);
                 $filePath = $file->file_path;
-                $avatarUrl = "https://api.telegram.org/file/bot" . $this->telegram->getAccessToken() . "/" . $filePath;
+                $avatarUrl =
+                    "https://api.telegram.org/file/bot" .
+                    $this->telegram->getAccessToken() .
+                    "/" .
+                    $filePath;
                 Logger::debug("用户头像地址: " . $avatarUrl);
                 return $this->saveAvatar($avatarUrl, $userId);
             } else {
@@ -783,8 +887,8 @@ class Instance
     private function saveAvatar($avatarUrl, $userId)
     {
         // 保存路径（确保目录存在）
-        $saveDir = BASE_PATH . '/' . config('telegram.store_dir') . '/avatars/';
-        $savePath = $saveDir . $userId . '.jpg';
+        $saveDir = BASE_PATH . "/" . config("telegram.store_dir") . "/avatars/";
+        $savePath = $saveDir . $userId . ".jpg";
 
         // 创建目录（如果不存在）
         if (!is_dir($saveDir)) {
@@ -802,11 +906,13 @@ class Instance
         $fileSaved = file_put_contents($savePath, $avatarData);
 
         if ($fileSaved === false) {
-            throw new \Exception("Failed to save avatar to local path: {$savePath}");
+            throw new \Exception(
+                "Failed to save avatar to local path: {$savePath}",
+            );
         }
 
         Logger::debug("Avatar saved successfully: {$savePath}");
-        return config('telegram.store_dir') . '/avatars/' . $userId . '.jpg';
+        return config("telegram.store_dir") . "/avatars/" . $userId . ".jpg";
     }
 
     public function isRunning(): bool
@@ -821,7 +927,7 @@ class Instance
             Logger::debug("关闭成功");
             $this->running = false;
             Logger::debug("运行模式：{$this->mode}");
-            if ($this->mode === 'webhook') {
+            if ($this->mode === "webhook") {
                 Logger::debug("删除webhook");
                 $this->telegram->deleteWebhook();
             }
@@ -830,7 +936,7 @@ class Instance
 
     private function handleCommonText(Update $update, $text)
     {
-        if ($handler = config('telegram.common_text_handler')) {
+        if ($handler = config("telegram.common_text_handler")) {
             if (class_exists($handler)) {
                 $handlerIns = new $handler($this, $update);
                 $handlerIns->handle($text);
@@ -845,10 +951,10 @@ class Instance
         $chatId = $this->getChatId($update);
         $state = $this->getState($chatId);
         if ($state) {
-            Context::set('state', $state);
+            Context::set("state", $state);
             $this->handleState($update, $state, $text);
         } else {
-            Logger::info('handle Text: ' . $text);
+            Logger::info("handle Text: " . $text);
             $this->handleCommonText($update, $text);
         }
     }
@@ -866,7 +972,7 @@ class Instance
 
     private function handleOtherUpdate(Update $update)
     {
-        if ($handle = config('telegram.handle_other_update')) {
+        if ($handle = config("telegram.handle_other_update")) {
             if (class_exists($handle)) {
                 $inst = make($handle);
                 $inst->handle($this, $update);
