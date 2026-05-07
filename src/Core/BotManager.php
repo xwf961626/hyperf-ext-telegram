@@ -77,7 +77,7 @@ class BotManager
         if ($mode == 'webhook') {
             $this->startWebhook();
         } else {
-            $bots = TelegramBot::where('status', '<>', 'invalid')->get();
+            $bots = TelegramBot::whereNotIn('status', ['invalid', 'stopped'])->get();
             /** @var TelegramBot $bot */
             foreach ($bots as $bot) {
                 try {
