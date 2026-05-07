@@ -161,16 +161,18 @@ class BotManager
         Logger::info("Worker#{$this->workerId} 关闭机器人：" . $bot->id);
     }
 
-    public function stopBot(TelegramBot $bot): void
+    public function stopBot(TelegramBot $bot, $isDelete = false): void
     {
         $this->logger->info("Stopping bot $bot->username ...");
 
         /** @var Instance $instance */
         if (isset($this->bots[$bot->id])) {
-            $instance = $this->bots[$bot->id];
             $this->logger->info("当前机器人状态是否正在运行： {$instance->isRunning()}");
-            $instance->stop();
-            unset($this->bots[$bot->id]);
+            if($isDelete) {
+                $instance = $this->bots[$bot->id];
+                $instance->stop();
+                unset($this->bots[$bot->id]);
+            }
             $bot->status = 'stopped';
             $bot->save();
         } else {

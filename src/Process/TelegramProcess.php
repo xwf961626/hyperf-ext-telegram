@@ -156,7 +156,7 @@ class TelegramProcess extends AbstractProcess
             }
             if ($cmd['command'] == 'delete') {
                 Logger::debug("[botManger]删除机器人...");
-                $this->botManager->stopBot($bot);
+                $this->botManager->stopBot($bot, true);
                 $bot->delete();
             }
         }
