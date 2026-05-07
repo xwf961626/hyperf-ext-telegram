@@ -154,8 +154,8 @@ class BotManager
     {
         $this->logger->info("Worker#{$this->workerId} Starting bot: {$bot->id}");
         $instance = $this->newInstance($bot);
-        $bot->status = 'running';
-        $bot->save();
+//        $bot->status = 'running';
+//        $bot->save();
         $this->bots[$bot->id] = $instance;
         $instance->start(isset($this->bots[$bot->id]));
         Logger::info("Worker#{$this->workerId} 关闭机器人：" . $bot->id);
