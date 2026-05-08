@@ -822,7 +822,7 @@ class Instance
         return Context::get(self::USER_KEY);
     }
 
-    private function updateUserInfo(Update $update): void
+    public function updateUserInfo(Update $update): void
     {
         $chatId = $this->getChatId($update); // 消息来自群里面的机器人时，这个chatId变成群ID了，
         $botId = $this->bot->id;
