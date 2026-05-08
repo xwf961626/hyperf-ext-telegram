@@ -427,10 +427,10 @@ class Instance
     protected function handleCommand(string $command, Update $update): bool
     {
         Logger::info("handle Command: " . trim($command));
-        if ($command == "/start") {
-            Logger::info("更新用户信息");
-            $this->updateUserInfo($update);
-        }
+        // if ($command == "/start") {
+        //     Logger::info("更新用户信息");
+        //     $this->updateUserInfo($update);
+        // }
 
         $handlerConfig = config("telegram.command_handlers");
         Logger::debug(
@@ -813,7 +813,7 @@ class Instance
         if ($user) {
             Context::set(self::USER_KEY, $user);
         } else {
-            $this->updateUserInfo($update);
+            // $this->updateUserInfo($update);
         }
     }
 
