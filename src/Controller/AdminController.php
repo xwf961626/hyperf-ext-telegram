@@ -84,6 +84,9 @@ class AdminController extends BaseController
         try {
             $oldToken = $bot->token;
             $updates = $request->all();
+            if($updates['expired_time'] > 0){
+                $updates['expired_at'] = date('Y-m-d H:i:s', $updates['expired_time']);
+            }
             $oldStatus = $bot->status;
             if ($token = $request->input('token')) {
                 $tokenArr = explode(':', $token);
