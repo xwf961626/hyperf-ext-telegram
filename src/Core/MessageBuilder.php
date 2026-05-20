@@ -72,6 +72,11 @@ class MessageBuilder
         return $this;
     }
 
+    public function set($key, $val):self {
+        $this->message[$key] = $val;
+        return $this;
+    }
+
     /**
      * 支持传入翻译 key 或纯文本
      */
